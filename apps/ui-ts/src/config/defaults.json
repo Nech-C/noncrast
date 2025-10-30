@@ -1,0 +1,7 @@
+{
+    "db": {
+        "filename": "noncrast.db",
+        "location": "userData",
+        "tasks_table_name": "tasks"
+    }
+}
