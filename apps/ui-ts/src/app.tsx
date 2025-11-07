@@ -5,9 +5,9 @@ import Dashboard from './components/Dashboard';
 
 const root = createRoot(document.body);
 root.render(
-<div className='font-sans h-screen w-screen'>
-
+<div className='font-sans h-dvh w-screen flex flex-col overflow-hidden'>
     <Nav />
     <Dashboard />
+
 </div>
 );
