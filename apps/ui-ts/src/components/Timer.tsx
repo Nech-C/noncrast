@@ -102,7 +102,7 @@ export default function Timer({ size = 360, initialSec = 5, onComplete, onTimeCh
         {Math.floor(displayTime % 60).toString().padStart(2, "0")}
       </div>
       <div
-        className="text-3xl text-neutral-600 flex items-center"
+        className="text-3xl text-neutral-600 flex items-center border-b-neutral-500 border-b-2"
       >
         <input
           type="text"
