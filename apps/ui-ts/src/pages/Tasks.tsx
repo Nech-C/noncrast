@@ -1,0 +1,104 @@
+// src/pages/Tasks.tsx
+import React, { useState } from 'react';
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCenter } from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core';
+import Task from '../components/Task';
+import { useTodoContext, useTodoActions } from '../state/todoContext';
+import type { TaskType } from '../types';
+
+function ColumnContainer({
+  id,
+  children,
+}: {
+  id: TaskType['status']
+  children: React.ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      data-droppable-id={id}
+      className="flex-1 min-h-0 flex flex-col border rounded-xl bg-white p-3 overflow-y-auto"
+    >
+      {children}
+    </div>
+  );
+}
+
+export default function TasksPage() {
+  const { tasks } = useTodoContext();
+  const { updateTaskStatus } = useTodoActions();
+
+  // track the currently active (dragged) id to render DragOverlay
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  function handleDragStart(event: DragStartEvent) {
+    const id = event.active?.id ? String(event.active.id) : null;
+    setActiveId(id);
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const active = event.active?.id ? String(event.active.id) : null;
+    const over = event.over?.id ? String(event.over.id) : null;
+
+    // clear overlay active state
+    setActiveId(null);
+
+    if (!active) return;
+
+    // if over is one of the status strings, update
+    if (over === 'todo' || over === 'in-progress' || over === 'done') {
+      const task = tasks.find((t) => String(t.id) === active) as TaskType | undefined;
+      if (!task) return;
+      if (task.status === over) return; // nothing to do
+      await updateTaskStatus(active, over as TaskType['status']);
+    }
+
+  }
+
+  const columns = [
+    { id: 'in-progress', title: 'In Progress' },
+    { id: 'todo', title: 'To-do' },
+    { id: 'done', title: 'Done' },
+  ] as const;
+
+  // helper to find the task object for activeId (for overlay)
+  const activeTask = activeId ? tasks.find((t) => String(t.id) === activeId) : undefined;
+
+  return (
+    <DndContext collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="flex flex-row justify-around h-full py-10 box-border items-stretch gap-4">
+        {columns.map((col) => (
+          <section key={col.id} className="basis-xs flex flex-col min-h-0 gap-5">
+            <h2 className="text-violet-500 text-3xl font-semibold text-center shrink-0">{col.title}</h2>
+            <ColumnContainer id={col.id}>
+              {tasks
+                .filter((t) => t.status === col.id)
+                .map((t) => (
+                  <Task
+                    key={String(t.id)}
+                    id={String(t.id)}
+                    taskName={t.task_name}
+                    taskDesc={t.description ?? ''}
+                    taskDue={t.due ? new Date(t.due).toLocaleDateString() : ''}
+                  />
+                ))}
+            </ColumnContainer>
+          </section>
+        ))}
+      </div>
+
+      <DragOverlay>
+        {activeTask ? (
+          <Task
+            id={String(activeTask.id)}
+            taskName={activeTask.task_name}
+            taskDesc={activeTask.description ?? ''}
+            taskDue={activeTask.due ? new Date(activeTask.due).toLocaleDateString() : ''}
+            overlay
+          />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
