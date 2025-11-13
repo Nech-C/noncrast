@@ -1,14 +1,50 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import os from 'node:os';
+import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
+
+import { TaskType, AddableTask } from './types';
+import { getDb } from './db';
+
+// Determine dev mode: running via forge/vite dev server or not packaged
+const isDev = !!(process.env.MAIN_WINDOW_VITE_DEV_SERVER_URL || process.env.ELECTRON_START_URL) || !app.isPackaged;
+
+// For dev runs (npm start), use a temp DB file to avoid persistence
+if (isDev) {
+  try {
+    const tmpRoot = path.join(os.tmpdir(), 'noncrast-dev-db');
+    fs.mkdirSync(tmpRoot, { recursive: true });
+    const tmpDb = path.join(tmpRoot, `noncrast-${process.pid}.db`);
+    process.env.NONCRAST_DB_PATH = tmpDb;
+    console.info("temp db path: ", tmpDb)
+  } catch {
+    // best-effort; fallback to default path if this fails
+  }
+}
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
 
+function handleUpdateTaskStatus(event, id: TaskType['id'], status: TaskType['status']) {
+  // Coerce id to number defensively
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) return;
+  getDb().updateTaskStatus(numericId, status);
+}
+
+
 const createWindow = () => {
   // Create the browser window.
+  ipcMain.on('update-task-status', handleUpdateTaskStatus)
+  ipcMain.handle('get-tasks', () => {
+    return getDb().getAllTasks();
+  });
+  ipcMain.handle('create-task', (_event, input: AddableTask) => {
+    return getDb().insertTask(input);
+  });
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -33,7 +69,24 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', async () => {
+  // In dev, seed some default tasks if DB is empty
+  if (isDev) {
+    try {
+      const db = getDb();
+      if (db.countTasks() === 0) {
+        const { devTasks } = await import('./config/devTasks');
+        devTasks.forEach((t: AddableTask) => {
+          db.insertTask(t);
+        });
+      }
+    } catch (err) {
+      // ignore seed errors in dev to not block startup
+      console.warn('Dev seed skipped:', err);
+    }
+  }
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

@@ -40,6 +40,7 @@ describe("Test DbClient", () => {
     expect(task.created_at).toBeGreaterThan(0);
     expect(task.updated_at).toBeNull();
     expect(task.completed_at).toBeNull();
+    expect(task.due).toBeNull();
 
     const fetched = db.getTaskById(task.id);
     expect(fetched).toBeDefined()
@@ -70,6 +71,16 @@ describe("Test DbClient", () => {
     const d = db.insertTask({ task_name: 'D' });
     const todos2 = db.getTasksByStatus('todo');
     expect(todos2[0].id).toBe(d.id);
+  });
+
+  it('inserts a task with due timestamp and retrieves it', () => {
+    const due = Date.now() + 10_000;
+    const t = db.insertTask({ task_name: 'with due', due });
+    expect(t.due).toBe(due);
+
+    const fetched = db.getTaskById(t.id);
+    expect(fetched).toBeDefined();
+    expect(fetched!.due).toBe(due);
   });
 
   it('updateTaskStatus sets updated_at and completed_at appropriately', () => {
