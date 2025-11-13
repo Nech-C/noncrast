@@ -6,7 +6,7 @@ type State = { tasks: TaskType[] };
 
 type Action =
   | { type: 'init'; payload: TaskType[] }
-  | { type: 'add'; payload: AddableTask }
+  | { type: 'add'; payload: TaskType }
   | { type: 'remove'; payload: TaskType['id'] }
   | { type: 'update'; payload: TaskType };
 
@@ -15,7 +15,7 @@ function taskReducer(state: State, action: Action): State {
     case 'init':
       return { ...state, tasks: action.payload };
     case 'add':
-      return { ...state, tasks: [...state.tasks, action.payload as TaskType] };
+      return { ...state, tasks: [...state.tasks, action.payload] };
     case 'remove':
       return { ...state, tasks: state.tasks.filter((t) => t.id !== action.payload) };
     case 'update':
@@ -28,6 +28,7 @@ function taskReducer(state: State, action: Action): State {
 // Action methods we expose from provider
 type Actions = {
   updateTaskStatus: (taskOrId: TaskType | TaskType['id'], newStatus: TaskType['status']) => Promise<void>;
+  addTask: (input: AddableTask) => Promise<TaskType | undefined>;
 };
 
 const TodoStateContext = createContext<State | undefined>(undefined);
@@ -68,6 +69,39 @@ export function TodoProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function addTask(input: AddableTask): Promise<TaskType | undefined> {
+    try {
+      const api = (typeof window !== 'undefined' ? (window as any).noncrast : undefined) || {};
+      if (api.createTask) {
+        const created = await api.createTask(input);
+        if (created) {
+          dispatch({ type: 'add', payload: created });
+          return created;
+        }
+      } else if (api.getMockTasks) {
+        // In pure-mock mode, approximate a created task
+        const mock: TaskType = {
+          id: Math.floor(Math.random() * 1e9),
+          task_name: input.task_name ?? null,
+          description: input.description ?? null,
+          status: input.status ?? 'todo',
+          created_at: Date.now(),
+          updated_at: null,
+          completed_at: null,
+          timespent: input.timespent ?? null,
+          timeset: input.timeset ?? null,
+          due: input.due ?? null,
+        };
+        dispatch({ type: 'add', payload: mock });
+        return mock;
+      }
+      console.warn('No createTask API available.');
+    } catch (err) {
+      console.error('Failed to add task:', err);
+    }
+    return undefined;
+  }
+
   // initial load (guard window.noncrast)
   useEffect(() => {
     let mounted = true;
@@ -75,10 +109,13 @@ export function TodoProvider({ children }: { children: React.ReactNode }) {
       try {
         let initial: TaskType[] = [];
         const api = (typeof window !== 'undefined' ? (window as any).noncrast : undefined) || {};
+        console.log(api)
         if (api.getTasks) {
           initial = await api.getTasks();
+          console.log(initial)
         } else if (api.getMockTasks) {
           initial = await api.getMockTasks();
+          console.log(initial)
         }
         if (mounted) dispatch({ type: 'init', payload: Array.isArray(initial) ? initial : [] });
       } catch (err) {
@@ -93,7 +130,7 @@ export function TodoProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TodoStateContext.Provider value={state}>
-      <ActionsContext.Provider value={{ updateTaskStatus }}>{children}</ActionsContext.Provider>
+      <ActionsContext.Provider value={{ updateTaskStatus, addTask }}>{children}</ActionsContext.Provider>
     </TodoStateContext.Provider>
   );
 }

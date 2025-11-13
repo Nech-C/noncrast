@@ -4,6 +4,7 @@ import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCenter } 
 import { useDroppable } from '@dnd-kit/core';
 import Task from '../components/Task';
 import { useTodoContext, useTodoActions } from '../state/todoContext';
+import type { AddableTask } from '../types';
 import type { TaskType } from '../types';
 
 function ColumnContainer({
@@ -27,10 +28,12 @@ function ColumnContainer({
 
 export default function TasksPage() {
   const { tasks } = useTodoContext();
-  const { updateTaskStatus } = useTodoActions();
+  const { updateTaskStatus, addTask } = useTodoActions();
 
   // track the currently active (dragged) id to render DragOverlay
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [newName, setNewName] = useState<string>('');
+  const [newDesc, setNewDesc] = useState<string>('');
 
   function handleDragStart(event: DragStartEvent) {
     const id = event.active?.id ? String(event.active.id) : null;
@@ -56,6 +59,17 @@ export default function TasksPage() {
 
   }
 
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newName.trim();
+    const desc = newDesc.trim();
+    if (!name) return;
+    const input: AddableTask = { task_name: name, description: desc || null, status: 'todo' };
+    await addTask(input);
+    setNewName('');
+    setNewDesc('');
+  }
+
   const columns = [
     { id: 'in-progress', title: 'In Progress' },
     { id: 'todo', title: 'To-do' },
@@ -67,7 +81,32 @@ export default function TasksPage() {
 
   return (
     <DndContext collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex flex-row justify-around h-full py-10 box-border items-stretch gap-4">
+      <div className="flex flex-col h-full py-6 px-4 box-border gap-4">
+        <form onSubmit={handleAdd} className="flex gap-2 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-zinc-700">Task name</label>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. Write project README"
+              className="border rounded px-2 py-1 min-w-[22rem]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-zinc-700">Description (optional)</label>
+            <input
+              type="text"
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="Short note"
+              className="border rounded px-2 py-1 min-w-[22rem]"
+            />
+          </div>
+          <button type="submit" className="bg-violet-600 text-white px-3 py-1 rounded-xl h-9">Add</button>
+        </form>
+
+        <div className="flex flex-row justify-around flex-1 box-border items-stretch gap-4 min-h-0">
         {columns.map((col) => (
           <section key={col.id} className="basis-xs flex flex-col min-h-0 gap-5">
             <h2 className="text-violet-500 text-3xl font-semibold text-center shrink-0">{col.title}</h2>
@@ -86,6 +125,7 @@ export default function TasksPage() {
             </ColumnContainer>
           </section>
         ))}
+        </div>
       </div>
 
       <DragOverlay>

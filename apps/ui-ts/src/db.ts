@@ -75,6 +75,33 @@ export class DbClient {
   close() {
     this.db.close();
   }
+  
+  /**
+   * 
+   * @returns all tasks store in db
+   */
+  getAllTasks(): TaskType[] | undefined {
+    try {
+      const rows = this.db
+        .prepare(`SELECT * FROM ${this.table} ORDER BY created_at DESC`)
+        .all() as TaskType[];
+      return rows;
+    } catch (err) {
+      console.error("Fail to fetch all tasks from db: ", err)
+      return undefined;
+    }
+  }
+
+  countTasks(): number {
+    try {
+      const row = this.db
+        .prepare(`SELECT COUNT(*) AS c FROM ${this.table}`)
+        .get() as { c: number } | undefined;
+      return Number(row?.c ?? 0);
+    } catch {
+      return 0;
+    }
+  }
 
   /**
    * Fetch a task by id
