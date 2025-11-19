@@ -1,87 +1,37 @@
 import React, { useEffect, useRef, useState } from "react";
+import useTimerContext from "../state/timerContext";
 
 type Props = {
   size?: number;
   initialSec?: number;
-  onComplete?: (time: number) => void;
-  onTimeChange?: (newSec: number) => void
 };
 
 
-
-
-export default function Timer({ size = 360, initialSec = 5, onComplete, onTimeChange}: Props) {
-  const [displayTime, setDisplayTime] = useState(initialSec);
-  const [timeSet, setTimeSet] = useState(initialSec);
-
-  const [running, setRunning] = useState(false);
-  const totalTimePassed = useRef(0);
-  const intervalIdRef = useRef(null);
-  const lastStartTime = useRef(null);
-
+export default function Timer({ size = 360}: Props) {
+  const timerContext = useTimerContext();
   const minRef = useRef(null);
   const secRef = useRef(null);
-  useEffect(() => {
-    setTimeSet(initialSec);
-    if (running) {
-      setRunning(false);
-      clearInterval(intervalIdRef.current);
-      const sessionTimePassed = Date.now() - lastStartTime.current;
-      totalTimePassed.current += sessionTimePassed;
-    }
-    setDisplayTime(Math.floor(initialSec - totalTimePassed.current/1000));
-  }, [initialSec])
-
-
-  function startTimer() {
-    lastStartTime.current = Date.now();
-    intervalIdRef.current = setInterval(() => {
-      const sessionTimePassed = Date.now() - lastStartTime.current;
-      const timeToDisplay = Math.floor(initialSec - (totalTimePassed.current + sessionTimePassed)/1000);
-      if (timeToDisplay === 0) {
-        return timeUp();
-      }
-      setDisplayTime(timeToDisplay);
-    }, 200);
-    setRunning(true);
-  }
-
-  function pauseTimer() {
-    clearInterval(intervalIdRef.current);
-    const sessionTimePassed = Date.now() - lastStartTime.current;
-    totalTimePassed.current += sessionTimePassed;
-    setDisplayTime(Math.floor(initialSec - totalTimePassed.current/1000));
-    setRunning(false);
-  }
-
-  function timeUp() {
-    clearInterval(intervalIdRef.current);
-    totalTimePassed.current = initialSec * 1000;
-    setDisplayTime(0);
-    setRunning(false);
-    onComplete(totalTimePassed.current);
-  }
-
-  function stopTimer() {
-    clearInterval(intervalIdRef.current);
-    const sessionTimePassed = Date.now() - lastStartTime.current;
-    const recordedTime = totalTimePassed.current + sessionTimePassed;
-    totalTimePassed.current = 0;
-    setDisplayTime(initialSec);
-    setRunning(false);
-    onComplete(recordedTime);
-  }
 
   function changeTime() {
     const rawM = minRef.current?.value ?? "";
     const rawS = secRef.current?.value ?? "";
 
-    const m = parseInt(rawM.replace(/\D/g, ""), 10) || 0;        // 0 if NaN/empty
+    const m = parseInt(rawM.replace(/\D/g, ""), 10) || 0;
     let s = parseInt(rawS.replace(/\D/g, ""), 10) || 0;
-    s = Math.min(59, Math.max(0, s));                   
-  
-    onTimeChange(m * 60 + s);
+    s = Math.min(59, Math.max(0, s));
+
+    timerContext.setTime((m * 60 + s) * 1000);
+    console.log(timerContext);
   }
+
+  function getMinutePartFromMs(ms: number): string {
+    return Math.floor(ms / 1000 / 60).toString().padStart(2, "0");
+  }
+
+  function getSecPartFromMs(ms: number): string {
+    return Math.floor(ms / 1000 % 60).toString().padStart(2, "0");
+  }
+
 
   return (
     <div
@@ -97,9 +47,9 @@ export default function Timer({ size = 360, initialSec = 5, onComplete, onTimeCh
       style={{ width: size, height: size }}
     >
       <div className="text-7xl font-semibold">
-        {Math.floor(displayTime / 60).toString().padStart(2, "0")}
+        {getMinutePartFromMs(timerContext.timerState.timeLeftMs)}
         :
-        {Math.floor(displayTime % 60).toString().padStart(2, "0")}
+        {getSecPartFromMs(timerContext.timerState.timeLeftMs)}
       </div>
       <div
         className="text-3xl text-neutral-600 flex items-center border-b-neutral-500 border-b-2"
@@ -109,7 +59,7 @@ export default function Timer({ size = 360, initialSec = 5, onComplete, onTimeCh
           ref={minRef}
           inputMode="numeric"
           size={Math.max(2, 2)}
-          value={Math.floor(timeSet / 60).toString().padStart(2, "0")}
+          value={getMinutePartFromMs(timerContext.timerState.timeSetMs)}
           onChange={changeTime}
           className="
             inline-block w-auto min-w-0 border-0 bg-transparent text-center
@@ -121,7 +71,7 @@ export default function Timer({ size = 360, initialSec = 5, onComplete, onTimeCh
           type="text"
           inputMode="numeric"
           ref={secRef}
-          value={Math.floor(timeSet % 60).toString().padStart(2, "0")}
+          value={getSecPartFromMs(timerContext.timerState.timeSetMs)}
           size={Math.max(2, 2)}
           onChange={changeTime}
           className="
@@ -131,12 +81,12 @@ export default function Timer({ size = 360, initialSec = 5, onComplete, onTimeCh
           />
       </div>
       {
-        !running
-        ? <button onClick={startTimer} className="bg-violet-500 text-white rounded-xl p-1">Start</button>
-        : <button onClick={pauseTimer} className="bg-violet-500 text-white rounded-xl p-1">Pause</button>
+        !timerContext.timerState.running
+        ? <button onClick={timerContext.start} className="bg-violet-500 text-white rounded-xl p-1">Start</button>
+        : <button onClick={timerContext.pause} className="bg-violet-500 text-white rounded-xl p-1">Pause</button>
       }
 
-      <button onClick={stopTimer} className="bg-rose-500 text-white rounded-xl p-1">Stop</button>
+      <button onClick={timerContext.stop} className="bg-rose-500 text-white rounded-xl p-1">Stop</button>
     </div>
   );
 }
