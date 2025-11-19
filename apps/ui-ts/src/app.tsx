@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Route, Link, Routes } from 'react-router-dom'
+import { HashRouter, Route, Routes } from 'react-router-dom'
 import { createRoot } from 'react-dom/client';
 
 import Nav from './components/Nav'

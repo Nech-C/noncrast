@@ -1,11 +1,11 @@
 // src/pages/Tasks.tsx
 import React, { useState } from 'react';
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCenter } from '@dnd-kit/core';
-import { useDroppable } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCenter , useDroppable } from '@dnd-kit/core';
+
 import Task from '../components/Task';
 import { useTodoContext, useTodoActions } from '../state/todoContext';
-import type { AddableTask } from '../types';
-import type { TaskType } from '../types';
+import type { AddableTask , TaskType } from '../types';
+
 
 function ColumnContainer({
   id,
