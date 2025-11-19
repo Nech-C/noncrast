@@ -1,6 +1,13 @@
 import React from "react";
+
 import Timer from "../components/Timer"
 import KpiCard from "../components/KpiCard";
+
+import useTimerContext from "../state/timerContext";
+import { useTodoContext } from "../state/todoContext";
+
+import FocusTask from "../components/FocusTask";
+import { TaskType } from "src/types";
 
 const tempKipItems = [
   { name: "Hours spent", content: "1H4M1S" },
@@ -12,6 +19,15 @@ const tempKipItems = [
 ];
 
 export default function Dashboard() {
+  const timerContext = useTimerContext();
+  const todoContext = useTodoContext();
+
+  function displayFocusTask(task: TaskType) {
+    return (
+      <FocusTask taskName={task.task_name} removeHandler={() => timerContext.unsetTask()} />
+    )
+  }
+
     return (
       <div className="px-30 py-12 flex-row flex h-full font-mono justify-between">
           <div
@@ -20,7 +36,17 @@ export default function Dashboard() {
               <div>
                 Current Task:
                 <div className="border-2 h-20 mb-12 rounded-2xl">
+                  {
+                    (timerContext.timerState.currentTaskId)
+                    ? displayFocusTask(todoContext.tasks.find((t) => t.id == timerContext.timerState.currentTaskId))
+                    : (<div></div>)
 
+                  }
+                  <div>
+                    <p>
+                      {}
+                    </p>
+                  </div>
                 </div>
               </div>
               <Timer size={320} />

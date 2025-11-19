@@ -31,12 +31,12 @@ export default function TasksPage() {
   const { updateTaskStatus, addTask } = useTodoActions();
 
   // track the currently active (dragged) id to render DragOverlay
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
   const [newName, setNewName] = useState<string>('');
   const [newDesc, setNewDesc] = useState<string>('');
 
   function handleDragStart(event: DragStartEvent) {
-    const id = event.active?.id ? String(event.active.id) : null;
+    const id = event.active?.id ? event.active.id : null;
     setActiveId(id);
   }
 
@@ -77,7 +77,7 @@ export default function TasksPage() {
   ] as const;
 
   // helper to find the task object for activeId (for overlay)
-  const activeTask = activeId ? tasks.find((t) => String(t.id) === activeId) : undefined;
+  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : undefined;
 
   return (
     <DndContext collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -116,7 +116,7 @@ export default function TasksPage() {
                 .map((t) => (
                   <Task
                     key={String(t.id)}
-                    id={String(t.id)}
+                    id={t.id}
                     taskName={t.task_name}
                     taskDesc={t.description ?? ''}
                     taskDue={t.due ? new Date(t.due).toLocaleDateString() : ''}
@@ -131,7 +131,7 @@ export default function TasksPage() {
       <DragOverlay>
         {activeTask ? (
           <Task
-            id={String(activeTask.id)}
+            id={activeTask.id}
             taskName={activeTask.task_name}
             taskDesc={activeTask.description ?? ''}
             taskDue={activeTask.due ? new Date(activeTask.due).toLocaleDateString() : ''}

@@ -1,9 +1,12 @@
 // src/components/Task.tsx
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useDraggable } from '@dnd-kit/core';
 
+import useTimerContext from '../state/timerContext';
+
 type Props = {
-  id: string;
+  id: number;
   taskName?: string;
   taskDesc?: string | null;
   taskDue?: string;
@@ -19,8 +22,8 @@ export default function Task({
 }: Props) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
 
-    const baseClass =
-    'flex flex-col border rounded-md p-2 gap-2 bg-white shadow-sm';
+  const baseClass =
+  'flex flex-col border rounded-md p-2 gap-2 bg-white shadow-sm';
 
   if (overlay) {
     return (
@@ -34,6 +37,8 @@ export default function Task({
     );
   }
 
+  const timerContext = useTimerContext();
+
   return (
     <div
       ref={setNodeRef}
@@ -42,6 +47,14 @@ export default function Task({
     >
       <div className="flex justify-between items-center">
         <div className="text-lg font-semibold">{taskName}</div>
+        <Link
+          type="button"
+          className="p-1 cursor-pointer touch-44"
+          to="/"
+          onClick={() => timerContext.setTask(id)}
+        >
+          ▶
+        </Link>
         <button
           {...listeners}
           type="button"
