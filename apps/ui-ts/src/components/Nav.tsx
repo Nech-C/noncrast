@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from 'react-router-dom';
 
 type Selection = "dashboard" | "tasks";
 
@@ -18,9 +19,10 @@ export default function Nav({ selected = "dashboard", onChange }: Props) {
   };
 
   return (
-    <nav className="border-b border-b-zinc-500">
+    <nav className="border-b border-b-zinc-500 shrink-0">
       <div role="tablist" className="flex px-2.5 py-2.5 font-mono text-2xl">
-        <button
+        <Link
+          to="/"
           id="dashboard-tab"
           role="tab"
           aria-selected={selectedTab === "dashboard"}
@@ -33,9 +35,10 @@ export default function Nav({ selected = "dashboard", onChange }: Props) {
           }
         >
           Dashboard
-        </button>
+        </Link>
 
-        <button
+        <Link
+          to="/tasks"
           id="tasks-tab"
           role="tab"
           aria-selected={selectedTab === "tasks"}
@@ -48,7 +51,7 @@ export default function Nav({ selected = "dashboard", onChange }: Props) {
           }
         >
           Tasks
-        </button>
+        </Link>
       </div>
     </nav>
   );

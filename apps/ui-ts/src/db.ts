@@ -1,21 +1,13 @@
 // db.ts
-import path from 'path';
 import fs from 'fs';
-import Database from 'better-sqlite3';
-import { app } from 'electron';
-import defaults from './config/defaults.json';
+import path from 'path';
 
-export type Task = {
-  id: number;
-  task_name: string | null;
-  description: string | null;
-  status: 'todo' | 'in-progress' | 'done';
-  created_at: number | null;
-  updated_at: number | null;
-  completed_at: number | null;
-  timespent: number | null;
-  timeset: number | null;
-};
+import { app } from 'electron';
+import Database from 'better-sqlite3';
+
+import defaults from './config/defaults.json';
+import { TaskType, AddableTask } from './types'
+
 
 const q = (ident: string) => `"${String(ident).replace(/"/g, '""')}"`;
 
@@ -63,13 +55,52 @@ export class DbClient {
         updated_at INTEGER,
         completed_at INTEGER,
         timespent INTEGER,
-        timeset INTEGER
+        timeset INTEGER,
+        due INTEGER
       )
     `);
+
+    // Lightweight migration: add 'due' column if missing in existing DBs
+    try {
+      const cols = this.db.prepare(`PRAGMA table_info(${this.table})`).all() as Array<{ name: string }>;
+      const hasDue = cols?.some((c) => c.name === 'due');
+      if (!hasDue) {
+        this.db.exec(`ALTER TABLE ${this.table} ADD COLUMN due INTEGER`);
+      }
+    } catch (e) {
+      // Ignore migration error to avoid blocking app start; schema already handles fresh DBs
+    }
   }
 
   close() {
     this.db.close();
+  }
+  
+  /**
+   * 
+   * @returns all tasks store in db
+   */
+  getAllTasks(): TaskType[] | undefined {
+    try {
+      const rows = this.db
+        .prepare(`SELECT * FROM ${this.table} ORDER BY created_at DESC`)
+        .all() as TaskType[];
+      return rows;
+    } catch (err) {
+      console.error("Fail to fetch all tasks from db: ", err)
+      return undefined;
+    }
+  }
+
+  countTasks(): number {
+    try {
+      const row = this.db
+        .prepare(`SELECT COUNT(*) AS c FROM ${this.table}`)
+        .get() as { c: number } | undefined;
+      return Number(row?.c ?? 0);
+    } catch {
+      return 0;
+    }
   }
 
   /**
@@ -77,10 +108,10 @@ export class DbClient {
    * @param id Id of the task to fetch
    * @returns The task object or undefined
    */
-  getTaskById(id: number): Task | undefined {
+  getTaskById(id: number): TaskType | undefined {
     return this.db
       .prepare(`SELECT * FROM ${this.table} WHERE id=@id LIMIT 1`)
-      .get({ id }) as Task | undefined;
+      .get({ id }) as TaskType | undefined;
   }
 
   /**
@@ -88,10 +119,10 @@ export class DbClient {
    * @param status Target status
    * @returns The array of all specified tasks
    */
-  getTasksByStatus(status: Task['status']): Task[] {
+  getTasksByStatus(status: TaskType['status']): TaskType[] {
     return this.db
       .prepare(`SELECT * FROM ${this.table} WHERE status=@status ORDER BY created_at DESC`)
-      .all({ status }) as Task[];
+      .all({ status }) as TaskType[];
   }
 
   /**
@@ -99,24 +130,18 @@ export class DbClient {
    * @param input Task to be inserted
    * @returns The inserted task
    */
-  insertTask(input: {
-    task_name?: string | null;
-    description?: string | null;
-    status?: Task['status'];
-    timespent?: number | null;
-    timeset?: number | null;
-  }): Task {
+  insertTask(input: AddableTask): TaskType {
     const now = Date.now();
     const info = this.db.prepare(`
       INSERT INTO ${this.table} (
         task_name, description, status,
         created_at, updated_at, completed_at,
-        timespent, timeset
+        timespent, timeset, due
       )
       VALUES (
         @task_name, @description, COALESCE(@status, 'todo'),
         @created_at, NULL, NULL,
-        @timespent, @timeset
+        @timespent, @timeset, @due
       )
     `).run({
       task_name: input.task_name ?? null,
@@ -125,6 +150,7 @@ export class DbClient {
       created_at: now,
       timespent: input.timespent ?? 0,
       timeset: input.timeset ?? 0,
+      due: input.due ?? null,
     });
 
     const task = this.getTaskById(Number(info.lastInsertRowid));
@@ -138,7 +164,7 @@ export class DbClient {
    * @param status new status
    * @returns Updated Task or undefined
    */
-  updateTaskStatus(id: number, status: Task['status']): Task | undefined {
+  updateTaskStatus(id: number, status: TaskType['status']): TaskType | undefined {
     const now = Date.now();
     const res = this.db.prepare(`
       UPDATE ${this.table}

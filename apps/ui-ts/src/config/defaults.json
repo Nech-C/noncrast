@@ -3,5 +3,10 @@
         "filename": "noncrast.db",
         "location": "userData",
         "tasks_table_name": "tasks"
+    },
+
+    "timer": {
+        "default_time": 3600000,
+        "refresh_rate": 200 
     }
 }
