@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import Timer from "../components/Timer"
 import KpiCard from "../components/KpiCard";
 
@@ -12,8 +12,6 @@ const tempKipItems = [
 ];
 
 export default function Dashboard() {
-    const [timerTime, setTimerTime] = useState(60);
-
     return (
       <div className="px-30 py-12 flex-row flex h-full font-mono justify-between">
           <div
@@ -25,7 +23,7 @@ export default function Dashboard() {
 
                 </div>
               </div>
-              <Timer onTimeChange={(t) => {setTimerTime(t)}} initialSec={timerTime} size={320} />
+              <Timer size={320} />
           </div>
 
           <div className="ml-5">
