@@ -180,6 +180,31 @@ export class DbClient {
   }
 
   /**
+   * Update the task in the database using its id
+   * @param updatedTask the updated task
+   */
+  updateTask(updatedTask: TaskType) {
+    if (!this.getTaskById(updatedTask.id)) {
+      throw new Error('Task not found!');
+    }
+    const now = Date.now();
+    updatedTask.updated_at = now;
+    const res = this.db.prepare(`
+      UPDATE ${this.table}
+      SET task_name=@task_name,
+          description=@description,
+          status=@status,
+          created_at=@created_at,
+          updated_at=@updated_at,
+          completed_at=@completed_at,
+          timespent=@timespent,
+          timeset=@timeset,
+          due=@due
+      WHERE id=@id
+    `).run(updatedTask);
+  }
+
+  /**
    * 
    * @param id id of the task to delete
    * @returns true for successful deletion. false otherwise.
@@ -196,6 +221,7 @@ export function getDb(): DbClient {
   if (!singleton) singleton = new DbClient(process.env.NONCRAST_DB_PATH);
   return singleton;
 }
+
 export function closeDb() {
   if (singleton) { singleton.close(); singleton = null; }
 }

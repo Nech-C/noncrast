@@ -4,22 +4,21 @@ import { Link } from 'react-router-dom';
 import { useDraggable } from '@dnd-kit/core';
 
 import useTimerContext from '../state/timerContext';
+import { TaskType, defaultTask } from "../types";
+import { parseDateInput, formatDateInput } from '../utils/dateHelper';
 
 type Props = {
-  id: number;
-  taskName?: string;
-  taskDesc?: string | null;
-  taskDue?: string;
+  task?: TaskType
+  setDetailedTaskOverlay?: (task: TaskType) => void
   overlay?: boolean;
 };
 
 export default function Task({
-  id,
-  taskName = 'Untitled',
-  taskDesc = '',
-  taskDue = '',
-  overlay = false,
+  task=defaultTask,
+  setDetailedTaskOverlay,
+  overlay = false
 }: Props) {
+  const id = task.id;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
 
   const baseClass =
@@ -29,10 +28,10 @@ export default function Task({
     return (
       <div className={`${baseClass} w-64`}>
         <div className="flex justify-between items-center">
-          <div className="text-lg font-semibold">{taskName}</div>
+          <div className="text-lg font-semibold">{task.task_name}</div>
         </div>
-        <div className="text-sm text-zinc-700 max-h-20 overflow-hidden">{taskDesc}</div>
-        <div className="text-xs text-zinc-500 flex justify-end">Due: {taskDue}</div>
+        <div className="text-sm text-zinc-700 max-h-20 overflow-hidden">{task.description}</div>
+        <div className="text-xs text-zinc-500 flex justify-end">Due: {formatDateInput(task.due)}</div>
       </div>
     );
   }
@@ -46,26 +45,32 @@ export default function Task({
       className={`${baseClass} ${isDragging ? 'opacity-50' : ''} user-select-none`}
     >
       <div className="flex justify-between items-center">
-        <div className="text-lg font-semibold">{taskName}</div>
+        <div className="text-lg font-semibold">{task.task_name}</div>
+        <button
+          className="p-1 cursor-pointer touch-44"
+          onClick={() => setDetailedTaskOverlay(task)}
+        >
+          ⚙️
+        </button>
         <Link
           type="button"
           className="p-1 cursor-pointer touch-44"
           to="/"
-          onClick={() => timerContext.setTask(id)}
+          onClick={() => timerContext.setTask(task.id)}
         >
           ▶
         </Link>
         <button
           {...listeners}
           type="button"
-          aria-label={`Drag ${taskName}`}
+          aria-label={`Drag ${task.task_name}`}
           className="p-1 cursor-grab touch-44"
         >
           ☰
         </button>
       </div>
-      <div className="text-sm text-zinc-700 max-h-20 overflow-auto">{taskDesc}</div>
-      <div className="text-xs text-zinc-500 flex justify-end">Due: {taskDue}</div>
+      <div className="text-sm text-zinc-700 max-h-20 overflow-auto">{task.description}</div>
+      <div className="text-xs text-zinc-500 flex justify-end">Due: {formatDateInput(task.due)}</div>
     </div>
   );
 }

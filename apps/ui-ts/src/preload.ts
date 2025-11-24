@@ -125,11 +125,13 @@ const tasks: TaskType[] = [
 
 contextBridge.exposeInMainWorld('noncrast', {
   // Prefer DB-backed tasks; renderer can fall back to getMockTasks in dev
-  getTasks: (): Promise<TaskType[]> => ipcRenderer.invoke('get-tasks'),
+  getTasks: (): Promise<TaskType[]> => ipcRenderer.invoke('db:getTasks'),
   getMockTasks: () => tasks,
-  createTask: (input: AddableTask): Promise<TaskType> => ipcRenderer.invoke('create-task', input),
-  updateTask: (id: TaskType['id'], status: TaskType['status']) => {
+  createTask: (input: AddableTask): Promise<TaskType> => ipcRenderer.invoke('db:createTask', input),
+  updateTaskStatus: (id: TaskType['id'], status: TaskType['status']) => {
     // Ensure numeric id is sent across IPC
-    ipcRenderer.send('update-task-status', Number(id), status);
+    ipcRenderer.send('db:updateTaskStatus', Number(id), status);
   },
+  updateTask: (input: TaskType): Promise<null> => ipcRenderer.invoke('db:updateTask', input),
+  deleteTask: (input: TaskType['id']): Promise<boolean> => ipcRenderer.invoke('db:deleteTask', input),
 })

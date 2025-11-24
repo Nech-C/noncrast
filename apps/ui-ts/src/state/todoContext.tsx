@@ -29,6 +29,8 @@ function taskReducer(state: State, action: Action): State {
 type Actions = {
   updateTaskStatus: (taskOrId: TaskType | TaskType['id'], newStatus: TaskType['status']) => Promise<void>;
   addTask: (input: AddableTask) => Promise<TaskType | undefined>;
+  updateTask: (updatedTask: TaskType) => Promise<void>;
+  deleteTask: (taskId: TaskType['id']) => Promise<boolean>;
 };
 
 const TodoStateContext = createContext<State | undefined>(undefined);
@@ -50,17 +52,39 @@ export function TodoProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'update', payload: updated });
 
     try {
-      if (typeof window !== 'undefined' && (window as any).noncrast?.updateTask) {
+      if (typeof window !== 'undefined' && window.noncrast?.updateTaskStatus) {
         // await so errors are caught
-        await (window as any).noncrast.updateTask(idNum, newStatus);
+        await window.noncrast.updateTaskStatus(idNum, newStatus);
+      } else {
+        console.warn('no backend API found at window.noncrast.updateTaskStatus — running offline.');
+      }
+    } catch (err) {
+      console.error('Persist failed:', err);
+      try {
+        if (typeof window !== 'undefined' && window.noncrast?.getTasks) {
+          const fresh = await window.noncrast.getTasks();
+          if (Array.isArray(fresh)) dispatch({ type: 'init', payload: fresh });
+        }
+      } catch (refreshErr) {
+        console.error('Refresh failed:', refreshErr);
+      }
+    }
+  }
+
+  async function updateTask(updatedTask: TaskType) {
+    dispatch({ type: "update", payload: updatedTask });
+    try {
+      if (typeof window !== 'undefined' && window.noncrast?.updateTask) {
+        // await so errors are caught
+        await window.noncrast.updateTask(updatedTask);
       } else {
         console.warn('no backend API found at window.noncrast.updateTask — running offline.');
       }
     } catch (err) {
       console.error('Persist failed:', err);
       try {
-        if (typeof window !== 'undefined' && (window as any).noncrast?.getTasks) {
-          const fresh = await (window as any).noncrast.getTasks();
+        if (typeof window !== 'undefined' && window.noncrast?.getTasks) {
+          const fresh = await window.noncrast.getTasks();
           if (Array.isArray(fresh)) dispatch({ type: 'init', payload: fresh });
         }
       } catch (refreshErr) {
@@ -71,7 +95,7 @@ export function TodoProvider({ children }: { children: React.ReactNode }) {
 
   async function addTask(input: AddableTask): Promise<TaskType | undefined> {
     try {
-      const api = (typeof window !== 'undefined' ? (window as any).noncrast : undefined) || {};
+      const api = (typeof window !== 'undefined' ? window.noncrast : undefined) || {};
       if (api.createTask) {
         const created = await api.createTask(input);
         if (created) {
@@ -102,13 +126,39 @@ export function TodoProvider({ children }: { children: React.ReactNode }) {
     return undefined;
   }
 
+  async function deleteTask(taskId: TaskType["id"]): Promise<boolean> {
+    dispatch({ type: "remove", payload: taskId });
+
+    try {
+      if (typeof window !== 'undefined' && window.noncrast?.deleteTask) {
+        // await so errors are caught
+        const result = await window.noncrast.deleteTask(taskId);
+        return result;
+      } else {
+        console.warn('no backend API found at window.noncrast.deleteTask — running offline.');
+      }
+    } catch (err) {
+      console.error('Persist failed:', err);
+      try {
+        if (typeof window !== 'undefined' && window.noncrast?.getTasks) {
+          const fresh = await window.noncrast.getTasks();
+          if (Array.isArray(fresh)) dispatch({ type: 'init', payload: fresh });
+        }
+      } catch (refreshErr) {
+        console.error('Refresh failed:', refreshErr);
+      }
+
+      return false;
+    }
+  }
+
   // initial load (guard window.noncrast)
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         let initial: TaskType[] = [];
-        const api = (typeof window !== 'undefined' ? (window as any).noncrast : undefined) || {};
+        const api = (typeof window !== 'undefined' ? window.noncrast : undefined) || {};
         console.log(api)
         if (api.getTasks) {
           initial = await api.getTasks();
@@ -130,7 +180,7 @@ export function TodoProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TodoStateContext.Provider value={state}>
-      <ActionsContext.Provider value={{ updateTaskStatus, addTask }}>{children}</ActionsContext.Provider>
+      <ActionsContext.Provider value={{ updateTaskStatus, addTask, updateTask, deleteTask }}>{children}</ActionsContext.Provider>
     </TodoStateContext.Provider>
   );
 }
