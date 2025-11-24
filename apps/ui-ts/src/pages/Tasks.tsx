@@ -4,6 +4,7 @@ import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, closestCenter , 
 
 import Task from '../components/Task';
 import { useTodoContext, useTodoActions } from '../state/todoContext';
+import TaskDetailOverlay from '../components/TaskDetailOverlay';
 import type { AddableTask , TaskType } from '../types';
 
 
@@ -34,6 +35,9 @@ export default function TasksPage() {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [newName, setNewName] = useState<string>('');
   const [newDesc, setNewDesc] = useState<string>('');
+
+  //
+  const [detailOverlayTask, setDisplayOverlay] = useState<TaskType>(null);
 
   function handleDragStart(event: DragStartEvent) {
     const id = event.active?.id ? event.active.id : null;
@@ -81,6 +85,10 @@ export default function TasksPage() {
 
   return (
     <DndContext collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      {(detailOverlayTask)
+        ? (<TaskDetailOverlay task={detailOverlayTask} onClose={() => setDisplayOverlay(null)}/>)
+        : null
+      }
       <div className="flex flex-col h-full py-6 px-4 box-border gap-4">
         <form onSubmit={handleAdd} className="flex gap-2 items-end">
           <div className="flex flex-col gap-1">
@@ -116,10 +124,8 @@ export default function TasksPage() {
                 .map((t) => (
                   <Task
                     key={String(t.id)}
-                    id={t.id}
-                    taskName={t.task_name}
-                    taskDesc={t.description ?? ''}
-                    taskDue={t.due ? new Date(t.due).toLocaleDateString() : ''}
+                    task={t}
+                    setDetailedTaskOverlay={setDisplayOverlay}
                   />
                 ))}
             </ColumnContainer>
@@ -131,10 +137,7 @@ export default function TasksPage() {
       <DragOverlay>
         {activeTask ? (
           <Task
-            id={activeTask.id}
-            taskName={activeTask.task_name}
-            taskDesc={activeTask.description ?? ''}
-            taskDue={activeTask.due ? new Date(activeTask.due).toLocaleDateString() : ''}
+            task={activeTask}
             overlay
           />
         ) : null}
