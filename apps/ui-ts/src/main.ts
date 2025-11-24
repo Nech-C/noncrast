@@ -1,3 +1,4 @@
+import { TaskType } from 'src/types';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import os from 'node:os';
@@ -38,13 +39,16 @@ function handleUpdateTaskStatus(event, id: TaskType['id'], status: TaskType['sta
 
 const createWindow = () => {
   // Create the browser window.
-  ipcMain.on('update-task-status', handleUpdateTaskStatus)
-  ipcMain.handle('get-tasks', () => {
+  ipcMain.on('db:updateTaskStatus', handleUpdateTaskStatus)
+  ipcMain.handle('db:getTasks', () => {
     return getDb().getAllTasks();
   });
-  ipcMain.handle('create-task', (_event, input: AddableTask) => {
+  ipcMain.handle('db:createTask', (_event, input: AddableTask) => {
     return getDb().insertTask(input);
   });
+  ipcMain.handle('db:updateTask', (_event, input: TaskType) => {
+    return getDb().updateTask(input);
+  })
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,

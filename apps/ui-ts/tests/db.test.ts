@@ -12,7 +12,7 @@ vi.mock('electron', () => {
         return os.tmpdir();
       }
     }
-  };
+  }; 
 });
 
 import { DbClient } from '../src/db';
@@ -106,4 +106,15 @@ describe("Test DbClient", () => {
     expect(db.getTaskById(t.id)).toBeUndefined();
   });
 
+  it('updateTask updates an existing row', () => {
+    let t = db.insertTask({ task_name: 'to update' });
+    t.task_name = "updated";
+    t.due = 0;
+    db.updateTask(t);
+
+    const updatedTask = db.getTaskById(t.id);
+    expect(updatedTask).not.toBe(undefined);
+    expect(updatedTask.task_name).toBe("updated");
+    expect(updatedTask.due).toBe(0);
+  })
 });
