@@ -48,6 +48,9 @@ const createWindow = () => {
   });
   ipcMain.handle('db:updateTask', (_event, input: TaskType) => {
     return getDb().updateTask(input);
+  });
+  ipcMain.handle('db:deleteTask', (_event, input: TaskType["id"]) => {
+    return getDb().deleteTask(input);
   })
   const mainWindow = new BrowserWindow({
     width: 800,

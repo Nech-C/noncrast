@@ -132,5 +132,6 @@ contextBridge.exposeInMainWorld('noncrast', {
     // Ensure numeric id is sent across IPC
     ipcRenderer.send('db:updateTaskStatus', Number(id), status);
   },
-  updateTask: (input: TaskType): Promise<null> => ipcRenderer.invoke('db:updateTask', input)
+  updateTask: (input: TaskType): Promise<null> => ipcRenderer.invoke('db:updateTask', input),
+  deleteTask: (input: TaskType['id']): Promise<boolean> => ipcRenderer.invoke('db:deleteTask', input),
 })
