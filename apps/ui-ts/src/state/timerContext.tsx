@@ -1,18 +1,22 @@
 import React, { createContext, useState, useRef, useContext } from "react";
 
 import defaults from '../config/defaults.json'
+import { FocusSession } from "../types";
 
 type TimerState = {
   running: boolean;
+  paused: boolean;
   timeLeftMs: number;  // in milliseconds
   timeSetMs: number;  // in milliseconds
-  currentTaskId: number;
+  currentTaskId: number | null | undefined;
+  currentFocusSession: FocusSession | undefined;
 }
 
 type TimerApi = {
   timerState: TimerState;
   start: () => void;
   pause: () => void;
+  unpause: () => void;
   reset: () => void;
   stop: () => void;
   setTime: (time: number) => void;
@@ -30,15 +34,53 @@ const TimerContext = createContext(undefined);
 export function TimerProvider({ children }: { children: React.ReactNode }) {
   const [timerState, setTimerState] = useState<TimerState>({
     running: false,
+    paused: false,
     timeLeftMs: defaults.timer.default_time,
     timeSetMs: defaults.timer.default_time,
-    currentTaskId: undefined
+    currentTaskId: undefined,
+    currentFocusSession: undefined,
   });
   
   const intervalIdRef = useRef(null);  // for setInterval termination
-  const lastStartTime = useRef(null);
+  const lastStartTime = useRef<number | null>(null);
   const totalTimePassedMs = useRef(0);  // in milliseconds;
+  const currentSessionRef = useRef<FocusSession | undefined>(undefined);
   // used to better handle time change when timer is on
+
+  function computeElapsedMs() {
+    const ticking = intervalIdRef.current !== null;
+    const sinceLastStart = ticking && lastStartTime.current
+      ? Date.now() - lastStartTime.current
+      : 0;
+    return totalTimePassedMs.current + sinceLastStart;
+  }
+
+  async function finalizeSession(status: 'completed' | 'cancelled') {
+    const session = currentSessionRef.current;
+    if (!session) return;
+
+    const focus_ms = computeElapsedMs();
+    const ended_at = Date.now();
+
+    try {
+      await window.noncrast?.updateFocusSession?.({
+        ...session,
+        ended_at,
+        focus_ms,
+        status,
+      });
+    } catch (err) {
+      console.warn('Failed to finalize focus session', err);
+    }
+
+    currentSessionRef.current = undefined;
+    setTimerState((oldState) => ({
+      ...oldState,
+      currentFocusSession: undefined,
+      paused: false,
+      running: false,
+    }));
+  }
 
   /**
    * Called when the time is up. Time up logic:
@@ -50,17 +92,62 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     intervalIdRef.current = null;
 
     totalTimePassedMs.current = timerState.timeSetMs;
+    finalizeSession('completed');
     setTimerState((oldState) => {
-        return {...oldState, timeLeftMs: 0, running: false}
+        return {...oldState, timeLeftMs: 0, running: false, paused: false}
     })
   }
 
 
   /**
    * This function handles the main timer logic using setInterval and timestamp
-   * Called to start and unpause the timer.
+   * Called to only start the timer AND a new session
    */
-  function start() {
+  async function start() {
+    if (timerState.running || timerState.paused) return;
+
+    totalTimePassedMs.current = 0;
+    lastStartTime.current = Date.now();
+    intervalIdRef.current = setInterval(() => {
+      const sessionTimePassed = Date.now() - lastStartTime.current;
+      const newTimeLeft = timerState.timeSetMs - totalTimePassedMs.current - sessionTimePassed;
+      if (newTimeLeft <= 0) {
+        return timeUp();
+      }
+      
+      setTimerState((oldState) => {
+        return {...oldState, timeLeftMs: newTimeLeft}
+      })
+      
+      
+    }, defaults.timer.refresh_rate);
+    
+    
+    setTimerState((oldState) => {
+      return {...oldState, running: true, paused: false}
+    });
+    
+    try {
+      const createSession = window.noncrast?.createFocusSession;
+      if (!createSession) throw new Error('Session API not available');
+      const newSession = await createSession(timerState.timeSetMs, timerState.currentTaskId);
+      currentSessionRef.current = newSession;
+
+      setTimerState((oldState) => {
+        return {...oldState, currentFocusSession: newSession};
+      });
+    } catch (err) {
+      console.warn('Failed to start focus session', err);
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+      setTimerState((oldState) => ({ ...oldState, running: false, paused: false }));
+    }
+  }
+
+
+  function unpause() {
+    if (timerState.running || !timerState.paused) return;
+
     lastStartTime.current = Date.now();
     intervalIdRef.current = setInterval(() => {
       const sessionTimePassed = Date.now() - lastStartTime.current;
@@ -76,7 +163,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     }, defaults.timer.refresh_rate);
 
     setTimerState((oldState) => {
-        return {...oldState, running: true}
+        return {...oldState, running: true, paused: false}
       })
   }
 
@@ -87,9 +174,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     clearInterval(intervalIdRef.current);
     const sessionTimePassed = Date.now() - lastStartTime.current;
     totalTimePassedMs.current += sessionTimePassed;
-    const newTimeLeft = timerState.timeSetMs - totalTimePassedMs.current - sessionTimePassed
+    const newTimeLeft = timerState.timeSetMs - totalTimePassedMs.current;
     setTimerState((oldState) => {
-        return {...oldState, timeLeftMs: newTimeLeft, running: false}
+        return {...oldState, timeLeftMs: newTimeLeft, running: false, paused: true}
     })
   }
 
@@ -99,22 +186,27 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   function reset() {
     totalTimePassedMs.current = 0;
     clearInterval(intervalIdRef.current);
+    finalizeSession('cancelled');
     setTimerState((oldState) => {
-        return {...oldState, timeLeftMs: timerState.timeSetMs, running: false};
+        return {...oldState, timeLeftMs: timerState.timeSetMs, running: false, paused: false, currentFocusSession: undefined};
     })
   }
 
   function stop() {
-    if (timerState.running) {
+    if (timerState.running || timerState.paused) {
+      if (lastStartTime.current) {
+        const sessionTimePassed = Date.now() - lastStartTime.current;
+        totalTimePassedMs.current += sessionTimePassed;
+      }
       clearInterval(intervalIdRef.current);
       intervalIdRef.current = null;
     }
-    // TODO: change update task
     
+    finalizeSession('completed');
     totalTimePassedMs.current = 0;
     setTimerState(
       (oldState) => {
-        return {...oldState, timeLeftMs: oldState.timeSetMs, running: false};
+        return {...oldState, timeLeftMs: oldState.timeSetMs, running: false, paused: false, currentFocusSession: undefined};
       }
     )
   }
@@ -126,7 +218,8 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   function setTime(time: number) {
     clearInterval(intervalIdRef.current);
     intervalIdRef.current = null;
-    let newTimeLeft = time;
+    time = time ?? 0;
+    let newTimeLeft = time; // time can be null
     if (timerState.running) {
       const sessionTimePassed = Date.now() - lastStartTime.current;
       newTimeLeft -= (sessionTimePassed + totalTimePassedMs.current);
@@ -160,6 +253,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const api: TimerApi = {
     timerState,
     start,
+    unpause,
     pause,
     reset,
     stop,

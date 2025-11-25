@@ -2,7 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 import { contextBridge, ipcRenderer } from "electron";
 
-import { TaskType, AddableTask } from './types';
+import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption } from './types';
 // import { getDb } from "./db";
 
 const tasks: TaskType[] = [
@@ -16,7 +16,7 @@ const tasks: TaskType[] = [
     updated_at: 1761987600000,
     completed_at: null,
     timespent: null,
-    timeset: 1800, // 30 min planned
+    timeset: 1800000, // 30 min planned
     due: 1762246800000, // 2025-11-03T09:00:00Z
   },
   {
@@ -28,7 +28,7 @@ const tasks: TaskType[] = [
     updated_at: 1761912000000, // 2025-10-31T12:00:00Z (last touched)
     completed_at: null,
     timespent: null,
-    timeset: 1200, // 20 min
+    timeset: 1200000, // 20 min
     due: null,
   },
   {
@@ -54,7 +54,7 @@ const tasks: TaskType[] = [
     updated_at: 1762617600000, // 2025-11-08T16:00:00Z (recent work)
     completed_at: null,
     timespent: 900, // 15 min so far
-    timeset: 1500, // 25 min session
+    timeset: 1500000, // 25 min session
     due: 1762704000000, // 2025-11-09T16:00:00Z
   },
   {
@@ -65,7 +65,7 @@ const tasks: TaskType[] = [
     created_at: 1762353000000, // 2025-11-05T14:30:00Z
     updated_at: 1762429500000, // 2025-11-06T11:45:00Z
     completed_at: null,
-    timespent: 3600, // 1 hour worked
+    timespent: 3600000, // 1 hour worked
     timeset: null,
     due: null,
   },
@@ -78,7 +78,7 @@ const tasks: TaskType[] = [
     updated_at: 1762719300000,
     completed_at: null,
     timespent: 300, // 5 minutes
-    timeset: 300, // 5 min quick session
+    timeset: 300000, // 5 min quick session
     due: 1762978500000, // 2025-11-12T20:15:00Z
   },
 
@@ -134,4 +134,28 @@ contextBridge.exposeInMainWorld('noncrast', {
   },
   updateTask: (input: TaskType): Promise<null> => ipcRenderer.invoke('db:updateTask', input),
   deleteTask: (input: TaskType['id']): Promise<boolean> => ipcRenderer.invoke('db:deleteTask', input),
+  getFocusSessions: (): Promise<FocusSession[]> => ipcRenderer.invoke('db:getFocusSessions'),
+  getFocusSessionById: (id: FocusSession['id']): Promise<FocusSession | undefined> =>
+    ipcRenderer.invoke('db:getFocusSessionById', id),
+  getFocusSessionsByTask: (taskId: FocusSession['task_id']): Promise<FocusSession[]> =>
+    ipcRenderer.invoke('db:getFocusSessionsByTask', taskId),
+  getFocusSessionsByDateRange: (start: number, end: number): Promise<FocusSession[]> =>
+    ipcRenderer.invoke('db:getFocusSessionsByDateRange', start, end),
+  createFocusSession: (plannedMs: FocusSession['planned_ms'], taskId?: FocusSession['task_id']): Promise<FocusSession> =>
+    ipcRenderer.invoke('db:createFocusSession', plannedMs, taskId),
+  updateFocusSession: (session: FocusSession): Promise<FocusSession | undefined> =>
+    ipcRenderer.invoke('db:updateFocusSession', session),
+  deleteFocusSessionsByTask: (taskId: FocusSession['task_id']): Promise<number> =>
+    ipcRenderer.invoke('db:deleteFocusSessionsByTask', taskId),
+
+  getInterruptionsBySession: (sessionId: Interruption['session_id']): Promise<Interruption[]> =>
+    ipcRenderer.invoke('db:getInterruptionsBySession', sessionId),
+  getInterruptionById: (id: Interruption['id']): Promise<Interruption | undefined> =>
+    ipcRenderer.invoke('db:getInterruptionById', id),
+  createInterruption: (input: AddableInterruption): Promise<Interruption> =>
+    ipcRenderer.invoke('db:createInterruption', input),
+  updateInterruption: (input: Interruption): Promise<Interruption | undefined> =>
+    ipcRenderer.invoke('db:updateInterruption', input),
+  deleteInterruption: (id: Interruption['id']): Promise<boolean> =>
+    ipcRenderer.invoke('db:deleteInterruption', id),
 })

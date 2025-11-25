@@ -1,4 +1,4 @@
-import { TaskType } from './types';
+import { TaskType, FocusSession, Interruption } from './types';
 
 export {};
 
@@ -24,6 +24,54 @@ declare global {
 
       deleteTask?: (
         taskId: TaskType['id']
+      ) => Promise<boolean>;
+
+      getFocusSessions?: () => Promise<FocusSession[]>;
+
+      getFocusSessionById?: (
+        id: FocusSession['id']
+      ) => Promise<FocusSession | undefined>;
+
+      getFocusSessionsByTask?: (
+        taskId: FocusSession['task_id']
+      ) => Promise<FocusSession[]>;
+
+      getFocusSessionsByDateRange?: (
+        start: number,
+        end: number,
+      ) => Promise<FocusSession[]>;
+
+      createFocusSession?: (
+        plannedMs: FocusSession['planned_ms'],
+        taskId?: FocusSession['task_id'],
+      ) => Promise<FocusSession>;
+
+      updateFocusSession?: (
+        session: FocusSession
+      ) => Promise<FocusSession | undefined>;
+
+      deleteFocusSessionsByTask?: (
+        taskId: FocusSession['task_id']
+      ) => Promise<number>;
+
+      getInterruptionsBySession?: (
+        sessionId: Interruption['session_id']
+      ) => Promise<Interruption[]>;
+
+      getInterruptionById?: (
+        id: Interruption['id']
+      ) => Promise<Interruption | undefined>;
+
+      createInterruption?: (
+        input: import('./types').AddableInterruption
+      ) => Promise<Interruption>;
+
+      updateInterruption?: (
+        input: Interruption
+      ) => Promise<Interruption | undefined>;
+
+      deleteInterruption?: (
+        id: Interruption['id']
       ) => Promise<boolean>;
     };
   }

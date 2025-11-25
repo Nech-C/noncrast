@@ -1,11 +1,10 @@
-import { TaskType } from 'src/types';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 
-import { TaskType, AddableTask } from './types';
+import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption } from './types';
 import { getDb } from './db';
 
 // Determine dev mode: running via forge/vite dev server or not packaged
@@ -51,7 +50,43 @@ const createWindow = () => {
   });
   ipcMain.handle('db:deleteTask', (_event, input: TaskType["id"]) => {
     return getDb().deleteTask(input);
-  })
+  });
+
+  ipcMain.handle('db:getFocusSessions', () => getDb().getAllFocusSessions());
+  ipcMain.handle('db:getFocusSessionById', (_event, id: FocusSession['id']) => {
+    return getDb().getFocusSessionById(Number(id));
+  });
+  ipcMain.handle('db:getFocusSessionsByTask', (_event, taskId: FocusSession['task_id']) => {
+    return getDb().getFocusSessionsByTask(taskId);
+  });
+  ipcMain.handle('db:getFocusSessionsByDateRange', (_event, start: number, end: number) => {
+    return getDb().getFocusSessionsByDateRange(start, end);
+  });
+  ipcMain.handle('db:createFocusSession', (_event, plannedMs: FocusSession['planned_ms'], taskId?: FocusSession['task_id']) => {
+    return getDb().createFocusSession(plannedMs, taskId);
+  });
+  ipcMain.handle('db:updateFocusSession', (_event, session: FocusSession) => {
+    return getDb().updateFocusSession(session);
+  });
+  ipcMain.handle('db:deleteFocusSessionsByTask', (_event, taskId: FocusSession['task_id']) => {
+    return getDb().deleteFocusSessionByTask(taskId);
+  });
+
+  ipcMain.handle('db:getInterruptionsBySession', (_event, sessionId: Interruption['session_id']) => {
+    return getDb().getInterruptionsBySession(Number(sessionId));
+  });
+  ipcMain.handle('db:getInterruptionById', (_event, id: Interruption['id']) => {
+    return getDb().getInterruptionById(Number(id));
+  });
+  ipcMain.handle('db:createInterruption', (_event, input: AddableInterruption) => {
+    return getDb().createInterruption(input);
+  });
+  ipcMain.handle('db:updateInterruption', (_event, input: Interruption) => {
+    return getDb().updateInterruption(input);
+  });
+  ipcMain.handle('db:deleteInterruption', (_event, id: Interruption['id']) => {
+    return getDb().deleteInterruption(Number(id));
+  });
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
