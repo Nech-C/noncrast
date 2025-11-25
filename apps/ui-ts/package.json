@@ -9,8 +9,8 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node scripts/run-vitest-electron.js run",
+    "test:watch": "node scripts/run-vitest-electron.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix"
   },
