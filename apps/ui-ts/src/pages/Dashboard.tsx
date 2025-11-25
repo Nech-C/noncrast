@@ -7,7 +7,7 @@ import useTimerContext from "../state/timerContext";
 import { useTodoContext } from "../state/todoContext";
 
 import FocusTask from "../components/FocusTask";
-import { TaskType } from "src/types";
+import { TaskType } from "../types";
 
 const tempKipItems = [
   { name: "Hours spent", content: "1H4M1S" },
@@ -56,7 +56,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 grid-rows-3 gap-14">
               {tempKipItems.map((element) => {
                 return (
-                  <KpiCard name={element.name} content={element.content} />
+                  <KpiCard name={element.name} content={element.content} key={element.name} />
                 )
               })}
             </div>

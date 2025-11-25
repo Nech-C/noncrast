@@ -234,7 +234,7 @@ export class DbClient {
     }
     const now = Date.now();
     updatedTask.updated_at = now;
-    const res = this.db.prepare(`
+    this.db.prepare(`
       UPDATE ${this.tasksTable}
       SET task_name=@task_name,
           description=@description,

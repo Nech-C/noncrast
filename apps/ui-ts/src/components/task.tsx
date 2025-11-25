@@ -5,7 +5,7 @@ import { useDraggable } from '@dnd-kit/core';
 
 import useTimerContext from '../state/timerContext';
 import { TaskType, defaultTask } from "../types";
-import { parseDateInput, formatDateInput } from '../utils/dateHelper';
+import { formatDateInput } from '../utils/dateHelper';
 
 type Props = {
   task?: TaskType
