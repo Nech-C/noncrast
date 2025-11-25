@@ -20,6 +20,34 @@ export type AddableTask = {
   due?: number | null;
 }
 
+export type FocusSession = {
+  id: number;
+  task_id: number | null;
+  started_at: number;
+  ended_at: number | null;
+  planned_ms: number | null;
+  focus_ms: number | null;
+  status: 'active' | 'completed' | 'cancelled';
+  notes: string | null;
+}
+
+export type Interruption = {
+  id: number;
+  session_id: number;
+  occurred_at: number;
+  duration_ms: number | null;
+  type: string | null;
+  note: string | null;
+}
+
+export type AddableInterruption = {
+  session_id: Interruption['session_id'];
+  occurred_at?: Interruption['occurred_at'];
+  duration_ms?: Interruption['duration_ms'];
+  type?: Interruption['type'];
+  note?: Interruption['note'];
+}
+
 export const defaultTask: TaskType = {
   id: 1,
   task_name: "chore",
