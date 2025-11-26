@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef} from "react";
 import useTimerContext from "../state/timerContext";
 
 type Props = {
   size?: number;
-  initialSec?: number;
 };
 
 
@@ -21,7 +20,6 @@ export default function Timer({ size = 360}: Props) {
     s = Math.min(59, Math.max(0, s));
 
     timerContext.setTime((m * 60 + s) * 1000);
-    console.log(timerContext);
   }
 
   function getMinutePartFromMs(ms: number): string {
@@ -32,6 +30,8 @@ export default function Timer({ size = 360}: Props) {
     return Math.floor(ms / 1000 % 60).toString().padStart(2, "0");
   }
 
+  const isRunning = timerContext.timerState.running;
+  const isPaused = timerContext.timerState.paused;
 
   return (
     <div
@@ -81,12 +81,21 @@ export default function Timer({ size = 360}: Props) {
           />
       </div>
       {
-        !timerContext.timerState.running
-        ? <button onClick={timerContext.start} className="bg-violet-500 text-white rounded-xl p-1">Start</button>
-        : <button onClick={timerContext.pause} className="bg-violet-500 text-white rounded-xl p-1">Pause</button>
+        isRunning
+        ? <button onClick={timerContext.pause} className="bg-violet-500 text-white rounded-xl px-3 py-1">Pause</button>
+        : isPaused
+          ? <button onClick={timerContext.unpause} className="bg-emerald-500 text-white rounded-xl px-3 py-1">Unpause</button>
+          : <button onClick={timerContext.start} className="bg-violet-500 text-white rounded-xl px-3 py-1">Start</button>
       }
-
-      <button onClick={timerContext.stop} className="bg-rose-500 text-white rounded-xl p-1">Stop</button>
+      {(isRunning || isPaused) && (
+        <div className="flex gap-2">
+          <button onClick={timerContext.stop} className="bg-rose-500 text-white rounded-xl px-3 py-1">Stop</button>
+          <button onClick={timerContext.reset} className="bg-neutral-500 text-white rounded-xl px-3 py-1">Reset</button>
+        </div>
+      )}
+      {!isRunning && !isPaused && (
+        <button onClick={timerContext.reset} className="bg-neutral-500 text-white rounded-xl px-3 py-1">Reset</button>
+      )}
     </div>
   );
 }

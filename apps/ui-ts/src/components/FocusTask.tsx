@@ -1,8 +1,5 @@
 // src/components/Task.tsx
 import React from 'react';
-import { Link } from 'react-router-dom';
-
-import useTimerContext from '../state/timerContext';
 
 type Props = {
   taskName?: string;

@@ -2,7 +2,9 @@
     "db": {
         "filename": "noncrast.db",
         "location": "userData",
-        "tasks_table_name": "tasks"
+        "tasks_table_name": "tasks",
+        "focus_sessions_table_name": "focus_sessions",
+        "interruptions_table_name": "interruptions_table"
     },
 
     "timer": {

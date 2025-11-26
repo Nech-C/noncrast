@@ -5,7 +5,7 @@ import { useDraggable } from '@dnd-kit/core';
 
 import useTimerContext from '../state/timerContext';
 import { TaskType, defaultTask } from "../types";
-import { parseDateInput, formatDateInput } from '../utils/dateHelper';
+import { formatDateInput } from '../utils/dateHelper';
 
 type Props = {
   task?: TaskType
@@ -20,6 +20,7 @@ export default function Task({
 }: Props) {
   const id = task.id;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
+  const timerContext = useTimerContext();
 
   const baseClass =
   'flex flex-col border rounded-md p-2 gap-2 bg-white shadow-sm';
@@ -36,7 +37,6 @@ export default function Task({
     );
   }
 
-  const timerContext = useTimerContext();
 
   return (
     <div
@@ -53,10 +53,12 @@ export default function Task({
           ⚙️
         </button>
         <Link
-          type="button"
           className="p-1 cursor-pointer touch-44"
           to="/"
-          onClick={() => timerContext.setTask(task.id)}
+          onClick={() => {
+            timerContext.setTask(task.id);
+            timerContext.setTime(task.timeset);
+          }}
         >
           ▶
         </Link>
