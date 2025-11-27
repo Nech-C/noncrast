@@ -158,4 +158,9 @@ contextBridge.exposeInMainWorld('noncrast', {
     ipcRenderer.invoke('db:updateInterruption', input),
   deleteInterruption: (id: Interruption['id']): Promise<boolean> =>
     ipcRenderer.invoke('db:deleteInterruption', id),
+  startMonitoring: () => ipcRenderer.invoke('ml:startMonitoring'),
+  stopMonitoring: () => ipcRenderer.invoke('ml:stopMonitoring'),
+  onResult: (callback: (result: any) => void) => {
+    ipcRenderer.on('ml:result', (_event, data) => callback(data));
+  },
 })

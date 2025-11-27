@@ -73,6 +73,10 @@ declare global {
       deleteInterruption?: (
         id: Interruption['id']
       ) => Promise<boolean>;
+
+      startMonitoring?: () => Promise<void> | void;
+      
+      stopMonitoring?: () => Promise<void> | void;
     };
   }
 }
