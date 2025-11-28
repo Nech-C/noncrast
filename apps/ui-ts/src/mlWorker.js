@@ -9,10 +9,11 @@ if (!parentPort) {
 
 // Labels you want the model to choose from
 const CANDIDATES = [
-  'Screenshot of user watching a video',
+  'screenshot of user watching a video',
   'screenshot of user playing a video game',
   'screenshot of user working',
   'screenshot of the home screen',
+  'screenshot of user using social media',
   'unknown',
 ];
 
@@ -30,6 +31,7 @@ function isOffTrack(label) {
     'Screenshot of user watching a video',
     'screenshot of user playing a video game',
     'screenshot of the home screen',
+    'screenshot of user using social media',
   ];
   const lower = label.toLowerCase();
   return offTrackLabels.some((target) => target.toLowerCase() === lower);
