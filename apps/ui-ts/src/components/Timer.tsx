@@ -38,7 +38,7 @@ export default function Timer({ size = 360}: Props) {
       className="
         flex flex-col items-center justify-center gap-3 select-none
         rounded-full border-3 border-violet-500
-        bg-gradient-to-b from-violet-50/50 to-white/50
+        bg-linear-to-b from-violet-50/50 to-white/50
         backdrop-blur-md shadow-[0_10px_30px_-10px_rgba(109,40,217,0.3)]
         font-mono tabular-nums tracking-tight
         p-6

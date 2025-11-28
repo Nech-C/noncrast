@@ -1,4 +1,5 @@
-import { TaskType, FocusSession, Interruption } from './types';
+import { ipcRenderer } from 'electron';
+import { TaskType, FocusSession, Interruption, MlMsg } from './types';
 
 export {};
 
@@ -73,6 +74,14 @@ declare global {
       deleteInterruption?: (
         id: Interruption['id']
       ) => Promise<boolean>;
+
+      startMonitoring?: () => Promise<void> | void;
+      
+      stopMonitoring?: () => Promise<void> | void;
+
+      onMlResult?: (cb: (result: MlMsg) => void) => () => void;
+
+      notify?: ({ title, body }: {title: string, body: string}) => void
     };
   }
 }

@@ -48,6 +48,13 @@ export type AddableInterruption = {
   note?: Interruption['note'];
 }
 
+export type MlMsg = {
+  id: number;
+  label: string;
+  score: number;
+  offTrack: boolean;
+}
+
 export const defaultTask: TaskType = {
   id: 1,
   task_name: "chore",

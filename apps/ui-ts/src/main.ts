@@ -1,11 +1,17 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, desktopCapturer, Notification } from 'electron';
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
+import { Worker } from 'node:worker_threads';
 
 import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption } from './types';
 import { getDb } from './db';
+
+let mainWindow: BrowserWindow | null = null;
+let mlWorker: Worker | null = null;
+let monitorInterval: NodeJS.Timeout | null = null; 
+let nextJobId = 0;
 
 // Determine dev mode: running via forge/vite dev server or not packaged
 const isDev = !!(process.env.MAIN_WINDOW_VITE_DEV_SERVER_URL || process.env.ELECTRON_START_URL) || !app.isPackaged;
@@ -27,6 +33,55 @@ if (isDev) {
 if (started) {
   app.quit();
 }
+
+function createMLWorker() {
+  if (mlWorker) return; // already created
+
+  const workerPath = path.join(__dirname, 'mlWorker.js'); // compiled location
+  mlWorker = new Worker(workerPath);
+
+  mlWorker.on('message', (msg: any) => {
+    // Forward classification result to renderer
+    if (mainWindow) {
+      mainWindow.webContents.send('ml:result', msg);
+      // 
+      console.log('[ML result]', msg);
+    }
+  });
+
+  mlWorker.on('error', (err) => {
+    console.error('[ML worker] error:', err);
+  });
+
+  mlWorker.on('exit', (code) => {
+    console.log('[ML worker] exited with code', code);
+    mlWorker = null;
+  });
+}
+
+async function captureThumbnail(): Promise<Buffer> {
+  const sources = await desktopCapturer.getSources({
+    types: ['screen'],
+    thumbnailSize: { width: 224, height: 224 }, // good size for CLIP
+  });
+
+  const primary = sources[0];
+  if (!primary) {
+    throw new Error('No screen sources found');
+  }
+
+  return primary.thumbnail.toPNG(); // Buffer
+}
+
+function showNotification(title: string, body: string) {
+  const notification = new Notification({
+    title,
+    body
+  });
+
+  notification.show();
+}
+
 
 function handleUpdateTaskStatus(event, id: TaskType['id'], status: TaskType['status']) {
   // Coerce id to number defensively
@@ -87,6 +142,55 @@ const createWindow = () => {
   ipcMain.handle('db:deleteInterruption', (_event, id: Interruption['id']) => {
     return getDb().deleteInterruption(Number(id));
   });
+
+  ipcMain.handle('ml:startMonitoring', async () => {
+    createMLWorker();
+
+    if (monitorInterval) {
+      // already running
+      return true;
+    }
+
+    console.log('[ML] starting monitoring interval');
+
+    monitorInterval = setInterval(async () => {
+      if (!mlWorker) return;
+      try {
+        const image = await captureThumbnail();
+        const id = nextJobId++;
+
+        mlWorker.postMessage({
+          type: 'classify',
+          id,
+          image,
+        });
+        console.log('[ML] posted classify job', id);
+      } catch (err) {
+        console.error('[ML] capture or post failed:', err);
+      }
+    }, 5000); // every 5 secs
+
+    return true;
+  });
+  
+  ipcMain.handle('ml:stopMonitoring', async () => {
+    if (monitorInterval) {
+      clearInterval(monitorInterval);
+      monitorInterval = null;
+    }
+    return true;
+  });
+
+  ipcMain.handle('notify:sendNotification', async (_event, {title, body}: {title: string, body: string}) => {
+    try {
+      showNotification(title, body);
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  });
+
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -106,6 +210,8 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+  
+  return mainWindow;
 };
 
 // This method will be called when Electron has finished
@@ -127,7 +233,7 @@ app.on('ready', async () => {
       console.warn('Dev seed skipped:', err);
     }
   }
-  createWindow();
+  mainWindow = createWindow();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -143,7 +249,7 @@ app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    mainWindow = createWindow();
   }
 });
 
