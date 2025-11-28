@@ -14,8 +14,8 @@ const tempKipItems = [
   { name: "Tasks completed", content: "2" },
   { name: "Distracted", content: "2" },
   { name: "Tasks In Progress", content: "3" },
-  { name: "N/A", content: "N/A" },
-  { name: "N/A", content: "N/A" },
+  { name: "N/A1", content: "N/A" },
+  { name: "N/A2", content: "N/A" },
 ];
 
 export default function Dashboard() {

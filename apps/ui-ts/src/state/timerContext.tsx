@@ -1,7 +1,7 @@
 import React, { createContext, useState, useRef, useContext } from "react";
 
 import defaults from '../config/defaults.json'
-import { FocusSession } from "../types";
+import { FocusSession, MlMsg } from "../types";
 
 type TimerState = {
   running: boolean;
@@ -42,8 +42,16 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const currentSessionRef = useRef<FocusSession | undefined>(undefined);
 
   const detectionActiveRef = useRef(false);
-
+  const mlLisener = useRef<() => void | null>(null);
   // --- ML detection helpers ---
+
+  function handleMlMsg(msg: MlMsg) {
+    if (msg.offTrack) {
+      const title = "You might be off-track";
+      const body = "If you're not doing your work"
+      window.noncrast.notify({ title, body })
+    }
+  }
 
   function startDetection() {
     if (detectionActiveRef.current) return;
@@ -51,6 +59,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       // exposed via preload: window.ml.startMonitoring()
       window.noncrast?.startMonitoring?.();
       detectionActiveRef.current = true;
+      mlLisener.current = window.noncrast.onMlResult(handleMlMsg);
     } catch (err) {
       console.warn('Failed to start ML monitoring', err);
     }
@@ -60,6 +69,8 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     if (!detectionActiveRef.current) return;
     try {
       window.noncrast?.stopMonitoring?.();
+      mlLisener?.current();
+      mlLisener.current = null;
     } catch (err) {
       console.warn('Failed to stop ML monitoring', err);
     } finally {

@@ -1,8 +1,8 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 
-import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption } from './types';
+import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption, MlMsg } from './types';
 // import { getDb } from "./db";
 
 const tasks: TaskType[] = [
@@ -160,7 +160,15 @@ contextBridge.exposeInMainWorld('noncrast', {
     ipcRenderer.invoke('db:deleteInterruption', id),
   startMonitoring: () => ipcRenderer.invoke('ml:startMonitoring'),
   stopMonitoring: () => ipcRenderer.invoke('ml:stopMonitoring'),
-  onResult: (callback: (result: any) => void) => {
-    ipcRenderer.on('ml:result', (_event, data) => callback(data));
+  onMlResult: (callback: (result: MlMsg) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: MlMsg) => {
+      callback(payload);
+    }
+    ipcRenderer.on('ml:result', listener);
+
+    return () => {
+      ipcRenderer.removeListener('ml:result', listener);
+    }
   },
+  notify: ({title, body}: {title: string, body: string}) => ipcRenderer.invoke('notify:sendNotification', {title, body}),
 })

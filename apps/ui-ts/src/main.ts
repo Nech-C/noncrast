@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, desktopCapturer } from 'electron';
+import { app, BrowserWindow, ipcMain, desktopCapturer, Notification } from 'electron';
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
@@ -10,7 +10,7 @@ import { getDb } from './db';
 
 let mainWindow: BrowserWindow | null = null;
 let mlWorker: Worker | null = null;
-let monitorInterval: NodeJS.Timeout | null = null;
+let monitorInterval: NodeJS.Timeout | null = null; 
 let nextJobId = 0;
 
 // Determine dev mode: running via forge/vite dev server or not packaged
@@ -73,6 +73,14 @@ async function captureThumbnail(): Promise<Buffer> {
   return primary.thumbnail.toPNG(); // Buffer
 }
 
+function showNotification(title: string, body: string) {
+  const notification = new Notification({
+    title,
+    body
+  });
+
+  notification.show();
+}
 
 
 function handleUpdateTaskStatus(event, id: TaskType['id'], status: TaskType['status']) {
@@ -173,6 +181,16 @@ const createWindow = () => {
     return true;
   });
 
+  ipcMain.handle('notify:sendNotification', async (_event, {title, body}: {title: string, body: string}) => {
+    try {
+      showNotification(title, body);
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  });
+
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -192,6 +210,8 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+  
+  return mainWindow;
 };
 
 // This method will be called when Electron has finished
@@ -213,7 +233,7 @@ app.on('ready', async () => {
       console.warn('Dev seed skipped:', err);
     }
   }
-  createWindow();
+  mainWindow = createWindow();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -229,7 +249,7 @@ app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    mainWindow = createWindow();
   }
 });
 
