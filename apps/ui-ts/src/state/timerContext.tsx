@@ -43,13 +43,79 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
   const detectionActiveRef = useRef(false);
   const mlLisener = useRef<() => void | null>(null);
+  const offTrackWindowRef = useRef<boolean[]>([]); // rolling last N ML results
+  const notificationTimestampsRef = useRef<number[]>([]); // times we alerted for off-track
   // --- ML detection helpers ---
 
-  function handleMlMsg(msg: MlMsg) {
-    if (msg.offTrack) {
+  function playAlertTone() {
+    try {
+      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.08;
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (err) {
+      console.warn('Failed to play alert tone', err);
+    }
+  }
+
+  function recordNotificationAndMaybeStop() {
+    const now = Date.now();
+    notificationTimestampsRef.current = notificationTimestampsRef.current.filter((ts) => now - ts <= 60_000);
+    notificationTimestampsRef.current.push(now);
+
+    // Stop timer after 3 notifications within 1 minute
+    if (notificationTimestampsRef.current.length >= 3) {
+      pause();
+      window.noncrast.notify({
+        title: "Timer paused",
+        body: "Three off-track alerts in 1 minute. Resume when you're back on task.",
+      });
+      playAlertTone();
+      notificationTimestampsRef.current = [];
+      offTrackWindowRef.current = [];
+    }
+  }
+
+  async function handleMlMsg(msg: MlMsg) {
+    // Maintain rolling window of latest 5 results (true/false)
+    const windowRef = offTrackWindowRef.current;
+    windowRef.push(!!msg.offTrack);
+    if (windowRef.length > 5) windowRef.shift();
+
+    if (!msg.offTrack) return;
+
+    const session = currentSessionRef.current;
+    if (session?.id) {
+      try {
+        await window.noncrast?.createInterruption?.({
+          session_id: session.id,
+          occurred_at: Date.now(),
+          type: msg.label ?? 'ml-detected',
+          note: `score=${msg.score?.toFixed?.(3) ?? msg.score ?? 'n/a'}`,
+        });
+      } catch (err) {
+        console.warn('Failed to log interruption', err);
+      }
+    }
+
+    const offTrackCount = windowRef.filter(Boolean).length;
+    const shouldNotify = windowRef.length >= 5 && offTrackCount >= 3;
+
+    if (shouldNotify) {
+      windowRef.length = 0; // reset window after alert
+
       const title = "You might be off-track";
-      const body = "If you're not doing your work"
-      window.noncrast.notify({ title, body })
+      const body = "Please return to your focus task.";
+      window.noncrast.notify({ title, body });
+      playAlertTone();
+      recordNotificationAndMaybeStop();
     }
   }
 
