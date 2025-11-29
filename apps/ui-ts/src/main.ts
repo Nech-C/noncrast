@@ -7,6 +7,8 @@ import { Worker } from 'node:worker_threads';
 
 import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption } from './types';
 import { getDb } from './db';
+import { getSettings, resetSettings, updateSettings } from './settings/storage';
+import { SETTINGS } from './config/constants';
 
 let mainWindow: BrowserWindow | null = null;
 let mlWorker: Worker | null = null;
@@ -93,6 +95,16 @@ function handleUpdateTaskStatus(event, id: TaskType['id'], status: TaskType['sta
 
 const createWindow = () => {
   // Create the browser window.
+  ipcMain.handle(SETTINGS.channels.get, () => {
+    return getSettings();
+  });
+  ipcMain.handle(SETTINGS.channels.update, (_event, payload) => {
+    return updateSettings(payload ?? {});
+  });
+  ipcMain.handle(SETTINGS.channels.reset, () => {
+    return resetSettings();
+  });
+
   ipcMain.on('db:updateTaskStatus', handleUpdateTaskStatus)
   ipcMain.handle('db:getTasks', () => {
     return getDb().getAllTasks();
@@ -151,7 +163,15 @@ const createWindow = () => {
       return true;
     }
 
-    console.log('[ML] starting monitoring interval');
+    const settings = getSettings();
+    if (!settings.enableDetection) {
+      console.log('[ML] detection disabled in settings; not starting');
+      return false;
+    }
+
+    const intervalMs = Math.max(500, (settings.interruptionDetectionIntervalS ?? 5) * 1000);
+
+    console.log('[ML] starting monitoring interval', intervalMs, 'ms');
 
     monitorInterval = setInterval(async () => {
       if (!mlWorker) return;
@@ -168,7 +188,7 @@ const createWindow = () => {
       } catch (err) {
         console.error('[ML] capture or post failed:', err);
       }
-    }, 5000); // every 5 secs
+    }, intervalMs);
 
     return true;
   });

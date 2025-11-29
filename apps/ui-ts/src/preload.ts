@@ -3,6 +3,8 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 
 import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption, MlMsg } from './types';
+import { SETTINGS } from './config/constants';
+import { Settings, SettingsUpdate } from './settings/schema';
 // import { getDb } from "./db";
 
 const tasks: TaskType[] = [
@@ -158,6 +160,10 @@ contextBridge.exposeInMainWorld('noncrast', {
     ipcRenderer.invoke('db:updateInterruption', input),
   deleteInterruption: (id: Interruption['id']): Promise<boolean> =>
     ipcRenderer.invoke('db:deleteInterruption', id),
+  getSettings: (): Promise<Settings> => ipcRenderer.invoke(SETTINGS.channels.get),
+  updateSettings: (input: SettingsUpdate): Promise<Settings> =>
+    ipcRenderer.invoke(SETTINGS.channels.update, input),
+  resetSettings: (): Promise<Settings> => ipcRenderer.invoke(SETTINGS.channels.reset),
   startMonitoring: () => ipcRenderer.invoke('ml:startMonitoring'),
   stopMonitoring: () => ipcRenderer.invoke('ml:stopMonitoring'),
   onMlResult: (callback: (result: MlMsg) => void) => {

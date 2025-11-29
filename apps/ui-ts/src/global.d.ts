@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron';
 import { TaskType, FocusSession, Interruption, MlMsg } from './types';
+import { Settings, SettingsUpdate } from './settings/schema';
 
 export {};
 
@@ -74,6 +75,12 @@ declare global {
       deleteInterruption?: (
         id: Interruption['id']
       ) => Promise<boolean>;
+
+      getSettings?: () => Promise<Settings>;
+
+      updateSettings?: (input: SettingsUpdate) => Promise<Settings>;
+
+      resetSettings?: () => Promise<Settings>;
 
       startMonitoring?: () => Promise<void> | void;
       
