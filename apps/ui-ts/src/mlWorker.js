@@ -23,7 +23,10 @@ console.log('[ML worker] initializing pipeline...');
 const classifierPromise = pipeline(
   'zero-shot-image-classification',
   'Xenova/clip-vit-base-patch32'
-);
+).then((p) => {
+  console.log('[ML worker] pipeline ready');
+  return p;
+});
 
 // Decide if a label means “off track”
 function isOffTrack(label) {
@@ -57,6 +60,7 @@ async function classifyImage(imageBuffer) {
 
   const offTrack = isOffTrack(best.label);
 
+  console.log('[ML worker] classify result', { best, offTrack });
   return {
     label: best.label,
     score: best.score,

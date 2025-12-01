@@ -4,6 +4,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { Worker } from 'node:worker_threads';
+import { logger } from './logger';
 
 import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption } from './types';
 import { getDb } from './db';
@@ -17,6 +18,25 @@ let nextJobId = 0;
 
 // Determine dev mode: running via forge/vite dev server or not packaged
 const isDev = !!(process.env.MAIN_WINDOW_VITE_DEV_SERVER_URL || process.env.ELECTRON_START_URL) || !app.isPackaged;
+
+function resolveWorkerPath() {
+  // In dev the file sits next to main bundle in .vite/build
+  const devPath = path.join(__dirname, 'mlWorker.js');
+  if (isDev) return devPath;
+
+  // In packaged builds we unpack mlWorker.js (see forge.config.ts)
+  const unpackedPath = path.join(
+    process.resourcesPath,
+    'app.asar.unpacked',
+    '.vite',
+    'build',
+    'mlWorker.js',
+  );
+  if (fs.existsSync(unpackedPath)) return unpackedPath;
+
+  // Fallback to whatever __dirname resolves to (in asar) if all else fails
+  return devPath;
+}
 
 // For dev runs (npm start), use a temp DB file to avoid persistence
 if (isDev) {
@@ -39,7 +59,8 @@ if (started) {
 function createMLWorker() {
   if (mlWorker) return; // already created
 
-  const workerPath = path.join(__dirname, 'mlWorker.js'); // compiled location
+  const workerPath = resolveWorkerPath(); // compiled location (unpacked in prod)
+  logger.info('ML worker path resolved', workerPath);
   mlWorker = new Worker(workerPath);
 
   mlWorker.on('message', (msg: any) => {
@@ -52,11 +73,11 @@ function createMLWorker() {
   });
 
   mlWorker.on('error', (err) => {
-    console.error('[ML worker] error:', err);
+    logger.error('[ML worker] error', err);
   });
 
   mlWorker.on('exit', (code) => {
-    console.log('[ML worker] exited with code', code);
+    logger.warn('[ML worker] exited', { code });
     mlWorker = null;
   });
 }
@@ -72,6 +93,7 @@ async function captureThumbnail(): Promise<Buffer> {
     throw new Error('No screen sources found');
   }
 
+  logger.debug('[ML] captured thumbnail');
   return primary.thumbnail.toPNG(); // Buffer
 }
 
@@ -165,13 +187,13 @@ const createWindow = () => {
 
     const settings = getSettings();
     if (!settings.enableDetection) {
-      console.log('[ML] detection disabled in settings; not starting');
+      logger.info('[ML] detection disabled in settings; not starting');
       return false;
     }
 
     const intervalMs = Math.max(500, (settings.interruptionDetectionIntervalS ?? 5) * 1000);
 
-    console.log('[ML] starting monitoring interval', intervalMs, 'ms');
+    logger.info('[ML] starting monitoring interval', intervalMs);
 
     monitorInterval = setInterval(async () => {
       if (!mlWorker) return;
@@ -184,9 +206,9 @@ const createWindow = () => {
           id,
           image,
         });
-        console.log('[ML] posted classify job', id);
+        logger.debug('[ML] posted classify job', { id });
       } catch (err) {
-        console.error('[ML] capture or post failed:', err);
+        logger.error('[ML] capture or post failed', err);
       }
     }, intervalMs);
 
