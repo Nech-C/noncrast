@@ -35,6 +35,13 @@ function write(level: 'info' | 'warn' | 'error' | 'debug', msg: string, data?: a
 
 function safeStringify(value: any) {
   try {
+    if (value instanceof Error) {
+      return JSON.stringify({
+        message: value.message,
+        stack: value.stack,
+        code: (value as any).code,
+      });
+    }
     return typeof value === 'string' ? value : JSON.stringify(value);
   } catch {
     return '[unserializable]';
@@ -48,4 +55,3 @@ export const logger = {
   debug: (msg: string, data?: any) => write('debug', msg, data),
   logFile,
 };
-

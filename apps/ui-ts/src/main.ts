@@ -73,7 +73,12 @@ function createMLWorker() {
   });
 
   mlWorker.on('error', (err) => {
-    logger.error('[ML worker] error', err);
+    logger.error('[ML worker] error', {
+      message: err?.message,
+      stack: err?.stack,
+      code: (err as any)?.code,
+      name: err?.name,
+    });
   });
 
   mlWorker.on('exit', (code) => {
