@@ -8,9 +8,9 @@ export const SettingsSchema = z.object({
   endOfDay: z.int().max(23).min(0).default(0),
 
   enableDetection: z.boolean().default(true),
-  interruptionDetectionIntervalS: z.number().min(1).default(5),
-  interruptionThreshold: z.number().min(0).max(1).default(0.6),
-  interruptionPauseTrigger: z.number().min(1).default(3),
+  interruptionDetectionIntervalS: z.number().min(1).default(1),
+  interruptionThreshold: z.number().min(0).max(1).default(0.3),
+  interruptionPauseTrigger: z.number().min(1).default(2),
 });
 
 export type Settings = z.infer<typeof SettingsSchema>;

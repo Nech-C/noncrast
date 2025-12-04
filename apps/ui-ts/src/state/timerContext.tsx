@@ -47,7 +47,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const mlLisener = useRef<() => void | null>(null);
   const detectionWindowRef = useRef<Array<{ ts: number; offTrack: boolean }>>([]);
   const eventCountRef = useRef(0); // number of threshold-trigger events this session
-  const OFFTRACK_WINDOW_MS = 60_000;
+  const OFFTRACK_WINDOW_MS = 30_000; // TODO: make config
   // --- ML detection helpers ---
 
   function playAlertTone() {
@@ -84,7 +84,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     const offTrackCount = windowRef.filter((r) => r.offTrack).length;
     if (total === 0 || offTrackCount === 0) return;
 
-    const threshold = Math.min(1, Math.max(0, settings.interruptionThreshold ?? 0.6));
+    const threshold = Math.min(1, Math.max(0, settings.interruptionThreshold ?? 0.1));
     const ratio = offTrackCount / total;
     if (ratio < threshold) return;
 
