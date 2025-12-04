@@ -10,7 +10,15 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    // Unpack native binaries so Node can load .node files (e.g., better-sqlite3, onnxruntime) at runtime
+    asar: 
+    {
+      // Also unpack the ML worker bundle so worker_threads can load it from disk
+      unpack: '{**/*.node,**/mlWorker.js,**/mlWorker.cjs}',
+      // Unpack the whole .vite directory (contains mlWorker bundle) since minimatch ignores dot dirs by default
+      // Also unpack native deps used by the ML worker
+      unpackDir: '{.vite,node_modules/onnxruntime-node,node_modules/onnxruntime-common,node_modules/sharp,node_modules/@img}',
+    },
   },
   rebuildConfig: {},
   makers: [
@@ -63,6 +71,64 @@ const config: ForgeConfig = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
+  hooks: {
+    /**
+     * Vite bundles almost everything, so node_modules are stripped during packaging.
+     * Copy native runtime deps (better-sqlite3, onnxruntime-node) along with their
+     * dependency trees into the packaged app so require() can resolve them at runtime.
+     */
+    packageAfterCopy: async (_forgeConfig, buildPath) => {
+      const fs = await import('fs/promises');
+      const path = await import('node:path');
+      const { createRequire } = await import('node:module');
+      const require = createRequire(import.meta.url);
+
+      const nativeDeps = ['better-sqlite3', 'onnxruntime-node', 'sharp'];
+      const visited = new Set<string>();
+
+      const copyWithDeps = async (dep: string) => {
+        if (visited.has(dep)) return;
+        visited.add(dep);
+
+        try {
+          // Resolve the package.json first (works for ESM and type-only packages)
+          const pkgJsonPath = require.resolve(path.join(dep, 'package.json'), {
+            paths: [path.resolve(__dirname, 'node_modules')],
+          });
+
+          const pkgRoot = path.dirname(pkgJsonPath);
+          const pkgJson = JSON.parse(
+            await fs.readFile(pkgJsonPath, 'utf-8'),
+          );
+
+          // Skip type-only packages to avoid MODULE_NOT_FOUND for missing JS entry points
+          const typesOnly =
+            dep.startsWith('@types/') ||
+            (!pkgJson.main && !pkgJson.module && !pkgJson.exports && pkgJson.types);
+          if (typesOnly) return;
+
+          const dest = path.join(buildPath, 'node_modules', dep);
+          await fs.mkdir(path.dirname(dest), { recursive: true });
+          await fs.cp(pkgRoot, dest, { recursive: true, force: true });
+
+          const deps = {
+            ...pkgJson.dependencies,
+            ...pkgJson.optionalDependencies, // pull in platform-specific binaries (e.g., @img/sharp-win32-x64)
+          };
+
+          for (const child of Object.keys(deps ?? {})) {
+            await copyWithDeps(child);
+          }
+        } catch (err) {
+          console.warn(`[forge hook] failed to copy ${dep}:`, err);
+        }
+      };
+
+      for (const dep of nativeDeps) {
+        await copyWithDeps(dep);
+      }
+    },
+  },
 };
 
 export default config;
