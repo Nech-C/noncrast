@@ -64,11 +64,16 @@ function createMLWorker() {
   mlWorker = new Worker(workerPath);
 
   mlWorker.on('message', (msg: any) => {
+    // Worker can send logs or results
+    if (msg?.type === 'ml:log') {
+      logger.info('[ML worker]', msg.event ?? 'log', msg.data);
+      return;
+    }
+
     // Forward classification result to renderer
     if (mainWindow) {
       mainWindow.webContents.send('ml:result', msg);
-      // 
-      console.log('[ML result]', msg);
+      logger.debug('[ML result]', msg);
     }
   });
 

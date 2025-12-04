@@ -1,6 +1,19 @@
 // mlWorker.js
 import { parentPort } from 'node:worker_threads';
 import { pipeline } from '@huggingface/transformers';
+import path from 'node:path';
+import Module from 'node:module';
+
+// Ensure native deps resolve from the unpacked node_modules when packaged
+try {
+  const unpackedNodeModules = path.resolve(__dirname, '..', '..', 'node_modules');
+  if (!Module.globalPaths.includes(unpackedNodeModules)) {
+    Module.globalPaths.unshift(unpackedNodeModules);
+  }
+} catch (err) {
+  // non-fatal; fallback to default resolution
+  console.warn('[ML worker] failed to adjust module paths', err);
+}
 
 // Ensure we actually have a parentPort (i.e., we're in a worker)
 if (!parentPort) {
@@ -20,13 +33,28 @@ const CANDIDATES = [
 // Create the pipeline once and reuse it.
 // This returns either a pipeline or a Promise<pipeline>, so we always `await` it later.
 console.log('[ML worker] initializing pipeline...');
+const sendLog = (event, data) => {
+  try {
+    parentPort.postMessage({ type: 'ml:log', event, data });
+  } catch (err) {
+    // ignore
+  }
+};
+
 const classifierPromise = pipeline(
   'zero-shot-image-classification',
   'Xenova/clip-vit-base-patch32'
-).then((p) => {
-  console.log('[ML worker] pipeline ready');
-  return p;
-});
+)
+  .then((p) => {
+    console.log('[ML worker] pipeline ready');
+    sendLog('pipeline_ready');
+    return p;
+  })
+  .catch((err) => {
+    console.error('[ML worker] pipeline init failed', err);
+    sendLog('pipeline_error', { message: err?.message, stack: err?.stack });
+    throw err;
+  });
 
 // Decide if a label means “off track”
 function isOffTrack(label) {
@@ -43,6 +71,7 @@ function isOffTrack(label) {
 // Actually run classification
 async function classifyImage(imageBuffer) {
   console.log('[ML worker] classify start');
+  sendLog('classify_start');
   const classifier = await classifierPromise;
 
   // The pipeline expects something RawImage.read can handle (Blob/URL/Canvas/etc).
@@ -61,6 +90,7 @@ async function classifyImage(imageBuffer) {
   const offTrack = isOffTrack(best.label);
 
   console.log('[ML worker] classify result', { best, offTrack });
+  sendLog('classify_result', { best, offTrack });
   return {
     label: best.label,
     score: best.score,
