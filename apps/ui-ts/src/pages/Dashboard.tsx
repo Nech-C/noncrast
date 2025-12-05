@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Timer from "../components/Timer";
 import KpiCard from "../components/KpiCard";
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const timerContext = useTimerContext();
   const todoContext = useTodoContext();
   const { settings } = useSettings();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [interruptionsBySession, setInterruptionsBySession] = useState<Record<number, Interruption[]>>({});
   const [range, setRange] = useState<"today" | "yesterday" | "past_week">("today");
@@ -144,7 +146,11 @@ export default function Dashboard() {
   const kpiItems = [
     { name: range === "past_week" ? "Hours spent (avg/day)" : "Hours spent", content: formatDuration(toDailyAverage(hoursSpentMs)) },
     { name: range === "past_week" ? "Tasks completed (avg/day)" : "Tasks completed", content: formatNumber(toDailyAverage(tasksCompleted)) },
-    { name: range === "past_week" ? "Distracted (avg/day)" : "Distracted", content: formatNumber(toDailyAverage(interruptionsCount)) },
+    {
+      name: range === "past_week" ? "Distracted (avg/day)" : "Distracted",
+      content: formatNumber(toDailyAverage(interruptionsCount)),
+      onClick: () => navigate("/interruptions"),
+    },
     { name: "Tasks In Progress (today)", content: range === "today" ? String(tasksInProgress) : "—" },
   ];
 
@@ -201,7 +207,12 @@ export default function Dashboard() {
         </div>
         <div className="grid grid-cols-2 grid-rows-2 gap-10 pr-4">
           {kpiItems.map((element) => (
-            <KpiCard name={element.name} content={element.content} key={element.name} />
+            <KpiCard
+              name={element.name}
+              content={element.content}
+              key={element.name}
+              onClick={element.onClick}
+            />
           ))}
         </div>
         <p className="text-sm text-zinc-500 mt-5">Based on your End of Day setting ({formatHourLabel(settings.endOfDay)}).</p>

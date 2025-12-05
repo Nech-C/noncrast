@@ -68,6 +68,10 @@ declare global {
         input: import('./types').AddableInterruption
       ) => Promise<Interruption>;
 
+      captureAndCreateInterruption?: (
+        input: import('./types').AddableInterruption
+      ) => Promise<Interruption>;
+
       updateInterruption?: (
         input: Interruption
       ) => Promise<Interruption | undefined>;

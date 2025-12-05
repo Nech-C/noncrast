@@ -38,6 +38,7 @@ export type Interruption = {
   duration_ms: number | null;
   type: string | null;
   note: string | null;
+  screenshot_uri: string | null;
 }
 
 export type AddableInterruption = {
@@ -46,6 +47,7 @@ export type AddableInterruption = {
   duration_ms?: Interruption['duration_ms'];
   type?: Interruption['type'];
   note?: Interruption['note'];
+  screenshot_uri?: Interruption['screenshot_uri'];
 }
 
 export type MlMsg = {

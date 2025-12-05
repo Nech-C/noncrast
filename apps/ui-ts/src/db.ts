@@ -96,7 +96,8 @@ export class DbClient {
         occurred_at INTEGER NOT NULL,  -- ts
         duration_ms INTEGER NULL,  -- ms
         type TEXT NULL,
-        note TEXT NULL
+        note TEXT NULL,
+        screenshot_uri TEXT NULL
       );
     `)
 
@@ -109,6 +110,17 @@ export class DbClient {
       }
     } catch (e) {
       // Ignore migration error to avoid blocking app start; schema already handles fresh DBs
+    }
+
+    // Migration: add screenshot_uri to interruptions if missing
+    try {
+      const cols = this.db.prepare(`PRAGMA table_info(${this.interruptionsTable})`).all() as Array<{ name: string }>;
+      const hasShot = cols?.some((c) => c.name === 'screenshot_uri');
+      if (!hasShot) {
+        this.db.exec(`ALTER TABLE ${this.interruptionsTable} ADD COLUMN screenshot_uri TEXT`);
+      }
+    } catch (e) {
+      // best effort; avoid crashing if migration fails
     }
   }
 
@@ -413,10 +425,10 @@ export class DbClient {
 
     const info = this.db.prepare(`
       INSERT INTO ${this.interruptionsTable} (
-        session_id, occurred_at, duration_ms, type, note
+        session_id, occurred_at, duration_ms, type, note, screenshot_uri
       )
       VALUES (
-        @session_id, @occurred_at, @duration_ms, @type, @note
+        @session_id, @occurred_at, @duration_ms, @type, @note, @screenshot_uri
       )
     `).run({
       session_id: input.session_id,
@@ -424,6 +436,7 @@ export class DbClient {
       duration_ms: input.duration_ms ?? null,
       type: input.type ?? null,
       note: input.note ?? null,
+      screenshot_uri: input.screenshot_uri ?? null,
     });
 
     const created = this.getInterruptionById(Number(info.lastInsertRowid));
@@ -440,13 +453,15 @@ export class DbClient {
           occurred_at=@occurred_at,
           duration_ms=@duration_ms,
           type=@type,
-          note=@note
+          note=@note,
+          screenshot_uri=@screenshot_uri
       WHERE id=@id
     `).run({
       ...interruption,
       duration_ms: interruption.duration_ms ?? null,
       type: interruption.type ?? null,
       note: interruption.note ?? null,
+      screenshot_uri: interruption.screenshot_uri ?? null,
     });
 
     return this.getInterruptionById(interruption.id);

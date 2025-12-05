@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { Worker } from 'node:worker_threads';
 import { logger } from './logger';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 
 import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption } from './types';
 import { getDb } from './db';
@@ -107,6 +108,20 @@ async function captureThumbnail(): Promise<Buffer> {
   return primary.thumbnail.toPNG(); // Buffer
 }
 
+function saveScreenshotToDisk(buffer: Buffer): string | null {
+  try {
+    const root = path.join(app.getPath('userData'), 'interruptions');
+    fs.mkdirSync(root, { recursive: true });
+    const filename = `interruption-${Date.now()}.png`;
+    const filepath = path.join(root, filename);
+    fs.writeFileSync(filepath, buffer);
+    return pathToFileURL(filepath).href;
+  } catch (err) {
+    logger.warn('[ML] Failed to persist interruption screenshot', err);
+    return null;
+  }
+}
+
 function showNotification(title: string, body: string) {
   const notification = new Notification({
     title,
@@ -184,7 +199,18 @@ const createWindow = () => {
     return getDb().updateInterruption(input);
   });
   ipcMain.handle('db:deleteInterruption', (_event, id: Interruption['id']) => {
-    return getDb().deleteInterruption(Number(id));
+    const record = getDb().getInterruptionById(Number(id));
+    const deleted = getDb().deleteInterruption(Number(id));
+    return deleted;
+  });
+
+  ipcMain.handle('ml:captureAndCreateInterruption', async (_event, input: AddableInterruption) => {
+    const buffer = await captureThumbnail();
+    // Store a data URL for reliable renderer display; also persist to disk for future model training.
+    const dataUrl = `data:image/png;base64,${buffer.toString('base64')}`;
+    saveScreenshotToDisk(buffer); // best-effort archive for future training
+    const screenshot_uri = dataUrl;
+    return getDb().createInterruption({ ...input, screenshot_uri });
   });
 
   ipcMain.handle('ml:startMonitoring', async () => {
