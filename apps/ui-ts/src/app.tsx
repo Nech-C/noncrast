@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import Nav from './components/Nav'
 import Dashboard from './pages/Dashboard';
 import TasksPage from './pages/Tasks';
+import SettingsPage from './pages/Settings';
 import { TodoProvider } from './state/todoContext';
 import { TimerProvider } from './state/timerContext';
 import { SettingsProvider } from './state/settingsContext';
@@ -20,6 +21,7 @@ root.render(
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/tasks" element={<TasksPage />} />
+                <Route path="/settings/*" element={<SettingsPage />} />
               </Routes>
             </main>
           </div>
