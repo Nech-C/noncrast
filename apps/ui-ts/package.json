@@ -1,6 +1,6 @@
 {
-  "name": "ui-ts",
-  "productName": "ui-ts",
+  "name": "noncrast",
+  "productName": "noncrast",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
