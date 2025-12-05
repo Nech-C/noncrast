@@ -185,23 +185,31 @@ describe("Test DbClient", () => {
   it('creates, updates, and deletes interruptions', () => {
     const session = db.createFocusSession(0, null);
 
-    const intr = db.createInterruption({ session_id: session.id, note: 'ping' });
+    const intr = db.createInterruption({
+      session_id: session.id,
+      note: 'ping',
+      screenshot_uri: 'data:image/png;base64,abc123',
+    });
     expect(intr.id).toBeGreaterThan(0);
     expect(intr.duration_ms).toBeNull();
     expect(intr.type).toBeNull();
+    expect(intr.screenshot_uri).toBe('data:image/png;base64,abc123');
 
     const bySession = db.getInterruptionsBySession(session.id);
     expect(bySession.map(i => i.id)).toContain(intr.id);
+    expect(bySession.find(i => i.id === intr.id)?.screenshot_uri).toBe('data:image/png;base64,abc123');
 
     const updated = db.updateInterruption({
       ...intr,
       duration_ms: 750,
       type: 'call',
       note: 'quick call',
+      screenshot_uri: 'data:image/png;base64,zzz',
     });
     expect(updated?.duration_ms).toBe(750);
     expect(updated?.type).toBe('call');
     expect(updated?.note).toBe('quick call');
+    expect(updated?.screenshot_uri).toBe('data:image/png;base64,zzz');
 
     const ok = db.deleteInterruption(intr.id);
     expect(ok).toBe(true);

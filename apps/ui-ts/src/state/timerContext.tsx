@@ -95,12 +95,18 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     const session = currentSessionRef.current;
     if (session?.id) {
       try {
-        await window.noncrast?.createInterruption?.({
+        const payload = {
           session_id: session.id,
           occurred_at: now,
           type: msg.label ?? 'ml-detected',
           note: `ratio=${(ratio * 100).toFixed(1)}%, total=${total}`,
-        });
+        } as const;
+
+        if (window.noncrast?.captureAndCreateInterruption) {
+          await window.noncrast.captureAndCreateInterruption(payload);
+        } else {
+          await window.noncrast?.createInterruption?.(payload);
+        }
       } catch (err) {
         console.warn('Failed to log interruption', err);
       }

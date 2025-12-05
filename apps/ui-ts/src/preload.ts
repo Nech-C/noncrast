@@ -156,6 +156,8 @@ contextBridge.exposeInMainWorld('noncrast', {
     ipcRenderer.invoke('db:getInterruptionById', id),
   createInterruption: (input: AddableInterruption): Promise<Interruption> =>
     ipcRenderer.invoke('db:createInterruption', input),
+  captureAndCreateInterruption: (input: AddableInterruption): Promise<Interruption> =>
+    ipcRenderer.invoke('ml:captureAndCreateInterruption', input),
   updateInterruption: (input: Interruption): Promise<Interruption | undefined> =>
     ipcRenderer.invoke('db:updateInterruption', input),
   deleteInterruption: (id: Interruption['id']): Promise<boolean> =>

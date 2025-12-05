@@ -6,6 +6,7 @@ import Nav from './components/Nav'
 import Dashboard from './pages/Dashboard';
 import TasksPage from './pages/Tasks';
 import SettingsPage from './pages/Settings';
+import InterruptionsPage from './pages/Interruptions';
 import { TodoProvider } from './state/todoContext';
 import { TimerProvider } from './state/timerContext';
 import { SettingsProvider } from './state/settingsContext';
@@ -20,6 +21,7 @@ root.render(
             <main className='flex-1 min-h-0 overflow-hidden'>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/interruptions" element={<InterruptionsPage />} />
                 <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/settings/*" element={<SettingsPage />} />
               </Routes>
