@@ -11,6 +11,7 @@ export default defineConfig({
         // native addon + helper used by it
         'better-sqlite3',
         'bindings',
+        'file-uri-to-path',
       ],
     },
     commonjsOptions: {

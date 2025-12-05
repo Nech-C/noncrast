@@ -27,14 +27,14 @@ export const devTasks: AddableTask[] = [
     task_name: 'Implement TimerCard start/pause/stop',
     description: 'Hook TimerCard to createSession/finishSession via preload API.',
     status: 'in-progress',
-    timespent: 900,
-    timeset: 1500,
+    timespent: 900000,
+    timeset: 1500000,
   },
   {
     task_name: 'DB adapter: async sqlite',
     description: 'Build async sqlite adapter and expose ipcMain handlers.',
     status: 'in-progress',
-    timespent: 3600,
+    timespent: 3600000,
   },
   {
     task_name: 'Task quick-add UX polish',

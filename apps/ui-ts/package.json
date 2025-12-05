@@ -1,6 +1,6 @@
 {
-  "name": "ui-ts",
-  "productName": "ui-ts",
+  "name": "noncrast",
+  "productName": "noncrast",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
@@ -9,6 +9,7 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
+    "postinstall": "electron-rebuild -f -w better-sqlite3 --version=38.4.0",
     "test": "node scripts/run-vitest-electron.js run",
     "test:watch": "node scripts/run-vitest-electron.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
@@ -51,12 +52,14 @@
     "@huggingface/transformers": "^3.8.0",
     "@tailwindcss/vite": "^4.1.16",
     "@types/better-sqlite3": "^7.6.13",
+    "bindings": "^1.5.0",
     "better-sqlite3": "^12.4.1",
     "electron-squirrel-startup": "^1.0.1",
     "onnxruntime-node": "^1.23.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
-    "tailwindcss": "^4.1.16"
+    "tailwindcss": "^4.1.16",
+    "zod": "^4.1.13"
   }
 }

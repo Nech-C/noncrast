@@ -2,6 +2,7 @@ import React, { createContext, useState, useRef, useContext } from "react";
 
 import defaults from '../config/defaults.json'
 import { FocusSession, MlMsg } from "../types";
+import { useSettings } from "./settingsContext";
 
 type TimerState = {
   running: boolean;
@@ -27,6 +28,7 @@ type TimerApi = {
 const TimerContext = createContext<TimerApi | undefined>(undefined);
 
 export function TimerProvider({ children }: { children: React.ReactNode }) {
+  const { settings } = useSettings();
   const [timerState, setTimerState] = useState<TimerState>({
     running: false,
     paused: false,
@@ -43,8 +45,9 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
   const detectionActiveRef = useRef(false);
   const mlLisener = useRef<() => void | null>(null);
-  const offTrackWindowRef = useRef<boolean[]>([]); // rolling last N ML results
-  const notificationTimestampsRef = useRef<number[]>([]); // times we alerted for off-track
+  const detectionWindowRef = useRef<Array<{ ts: number; offTrack: boolean }>>([]);
+  const eventCountRef = useRef(0); // number of threshold-trigger events this session
+  const OFFTRACK_WINDOW_MS = 30_000; // TODO: make config
   // --- ML detection helpers ---
 
   function playAlertTone() {
@@ -65,66 +68,68 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  function recordNotificationAndMaybeStop() {
-    const now = Date.now();
-    notificationTimestampsRef.current = notificationTimestampsRef.current.filter((ts) => now - ts <= 60_000);
-    notificationTimestampsRef.current.push(now);
-
-    // Stop timer after 3 notifications within 1 minute
-    if (notificationTimestampsRef.current.length >= 3) {
-      pause();
-      window.noncrast.notify({
-        title: "Timer paused",
-        body: "Three off-track alerts in 1 minute. Resume when you're back on task.",
-      });
-      playAlertTone();
-      notificationTimestampsRef.current = [];
-      offTrackWindowRef.current = [];
-    }
-  }
-
   async function handleMlMsg(msg: MlMsg) {
-    // Maintain rolling window of latest 5 results (true/false)
-    const windowRef = offTrackWindowRef.current;
-    windowRef.push(!!msg.offTrack);
-    if (windowRef.length > 5) windowRef.shift();
+    const now = Date.now();
+    const windowRef = detectionWindowRef.current;
+    const isOffTrack = !!msg.offTrack;
 
-    if (!msg.offTrack) return;
+    windowRef.push({ ts: now, offTrack: isOffTrack });
+    // keep only last minute
+    const cutoff = now - OFFTRACK_WINDOW_MS;
+    while (windowRef.length && windowRef[0].ts < cutoff) {
+      windowRef.shift();
+    }
+
+    const total = windowRef.length;
+    const offTrackCount = windowRef.filter((r) => r.offTrack).length;
+    if (total === 0 || offTrackCount === 0) return;
+
+    const threshold = Math.min(1, Math.max(0, settings.interruptionThreshold ?? 0.1));
+    const ratio = offTrackCount / total;
+    if (ratio < threshold) return;
+
+    // Threshold hit: create interruption, notify, reset window
+    detectionWindowRef.current = [];
+    eventCountRef.current += 1;
 
     const session = currentSessionRef.current;
     if (session?.id) {
       try {
         await window.noncrast?.createInterruption?.({
           session_id: session.id,
-          occurred_at: Date.now(),
+          occurred_at: now,
           type: msg.label ?? 'ml-detected',
-          note: `score=${msg.score?.toFixed?.(3) ?? msg.score ?? 'n/a'}`,
+          note: `ratio=${(ratio * 100).toFixed(1)}%, total=${total}`,
         });
       } catch (err) {
         console.warn('Failed to log interruption', err);
       }
     }
 
-    const offTrackCount = windowRef.filter(Boolean).length;
-    const shouldNotify = windowRef.length >= 5 && offTrackCount >= 3;
+    window.noncrast.notify({
+      title: "Off-track detected",
+      body: `About ${(ratio * 100).toFixed(0)}% of the last detections were off-track.`,
+    });
+    playAlertTone();
 
-    if (shouldNotify) {
-      windowRef.length = 0; // reset window after alert
-
-      const title = "You might be off-track";
-      const body = "Please return to your focus task.";
-      window.noncrast.notify({ title, body });
-      playAlertTone();
-      recordNotificationAndMaybeStop();
+    const pauseTrigger = Math.max(1, settings.interruptionPauseTrigger ?? 3);
+    if (eventCountRef.current >= pauseTrigger) {
+      pause();
+      window.noncrast.notify({
+        title: "Timer paused",
+        body: "Too many off-track alerts this session. Resume when ready.",
+      });
     }
   }
 
-  function startDetection() {
+  async function startDetection() {
     if (detectionActiveRef.current) return;
+    if (!settings.enableDetection) return;
     try {
-      // exposed via preload: window.ml.startMonitoring()
-      window.noncrast?.startMonitoring?.();
+      const started = await window.noncrast?.startMonitoring?.();
+      if (started === false) return;
       detectionActiveRef.current = true;
+      detectionWindowRef.current = [];
       mlLisener.current = window.noncrast.onMlResult(handleMlMsg);
     } catch (err) {
       console.warn('Failed to start ML monitoring', err);
@@ -141,6 +146,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       console.warn('Failed to stop ML monitoring', err);
     } finally {
       detectionActiveRef.current = false;
+      detectionWindowRef.current = [];
     }
   }
 
@@ -158,6 +164,8 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
     // When a session ends (completed or cancelled), stop detection
     stopDetection();
+    eventCountRef.current = 0;
+    detectionWindowRef.current = [];
 
     const focus_ms = computeElapsedMs();
     const ended_at = Date.now();
@@ -239,6 +247,8 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
         currentFocusSession: newSession,
       }));
 
+      eventCountRef.current = 0;
+      detectionWindowRef.current = [];
       startDetection();
     } catch (err) {
       console.warn('Failed to start focus session', err);

@@ -5,7 +5,7 @@ import path from 'path';
 import { app } from 'electron';
 import Database from 'better-sqlite3';
 
-import defaults from './config/defaults.json';
+import { DB } from './config/constants';
 import { TaskType, AddableTask, FocusSession, Interruption, AddableInterruption } from './types'
 
 
@@ -20,15 +20,15 @@ export class DbClient {
   /**
    * Construct a DbClient.
    * @param dbPath - optional absolute or relative path to DB file. If omitted default
-   *                 is built from electron.app.getPath(defaults.db.location)
-   *                 and defaults.db.filename.
+   *                 is built from electron.app.getPath(DB.location)
+   *                 and DB.filename.
    *
    * Throws an Error if the database cannot be opened.
    */
   constructor(dbPath?: string) {
     const p = dbPath?.trim()
       ? path.resolve(dbPath)
-      : path.join(app.getPath(defaults.db.location), defaults.db.filename);
+      : path.join(app.getPath(DB.location), DB.filename);
 
     fs.mkdirSync(path.dirname(p), { recursive: true });
 
@@ -44,7 +44,7 @@ export class DbClient {
     this.db.pragma('synchronous = NORMAL');
     this.db.pragma('foreign_keys = ON');
 
-    this.tasksTable = q(defaults.db.tasks_table_name);
+    this.tasksTable = q(DB.tables.tasks);
 
     // task Schema
     this.db.exec(`
@@ -62,7 +62,7 @@ export class DbClient {
       )
     `);
 
-    this.focusSessionsTable = q(defaults.db.focus_sessions_table_name);
+    this.focusSessionsTable = q(DB.tables.focusSessions);
     
     /**
      * About status:
@@ -87,7 +87,7 @@ export class DbClient {
       );
     `)
 
-    this.interruptionsTable = q(defaults.db.interruptions_table_name);
+    this.interruptionsTable = q(DB.tables.interruptions);
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS ${this.interruptionsTable} (

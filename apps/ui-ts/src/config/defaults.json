@@ -1,12 +1,4 @@
 {
-    "db": {
-        "filename": "noncrast.db",
-        "location": "userData",
-        "tasks_table_name": "tasks",
-        "focus_sessions_table_name": "focus_sessions",
-        "interruptions_table_name": "interruptions_table"
-    },
-
     "timer": {
         "default_time": 3600000,
         "refresh_rate": 200 
