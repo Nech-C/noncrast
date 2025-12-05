@@ -20,7 +20,7 @@ function ColumnContainer({
     <div
       ref={setNodeRef}
       data-droppable-id={id}
-      className="flex-1 min-h-0 flex flex-col border rounded-xl bg-white p-3 overflow-y-auto"
+      className="flex-1 min-h-0 flex flex-col rounded-xl bg-transparent p-2 overflow-y-auto gap-3 custom-scrollbar"
     >
       {children}
     </div>
@@ -89,48 +89,53 @@ export default function TasksPage() {
         ? (<TaskDetailOverlay task={detailOverlayTask} onClose={() => setDisplayOverlay(null)}/>)
         : null
       }
-      <div className="flex flex-col h-full py-6 px-4 box-border gap-4">
-        <form onSubmit={handleAdd} className="flex gap-2 items-end">
+      <div className="flex flex-col h-full w-full bg-white py-8 px-10 box-border gap-8">
+        <form onSubmit={handleAdd} className="flex flex-wrap gap-4 items-end border border-zinc-200 rounded-2xl bg-white shadow-sm px-6 py-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-zinc-700">Task name</label>
+            <label className="text-sm font-semibold text-zinc-700">Task name</label>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. Write project README"
-              className="border rounded px-2 py-1 min-w-[22rem]"
+              className="border border-zinc-300 rounded-lg px-3 py-2 min-w-[20rem] text-base focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-zinc-700">Description (optional)</label>
+            <label className="text-sm font-semibold text-zinc-700">Description (optional)</label>
             <input
               type="text"
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
               placeholder="Short note"
-              className="border rounded px-2 py-1 min-w-[22rem]"
+              className="border border-zinc-300 rounded-lg px-3 py-2 min-w-[20rem] text-base focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
-          <button type="submit" className="bg-violet-600 text-white px-3 py-1 rounded-xl h-9">Add</button>
+          <button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg h-11 shadow-sm transition-colors">Add</button>
         </form>
 
-        <div className="flex flex-row justify-around flex-1 box-border items-stretch gap-4 min-h-0">
-        {columns.map((col) => (
-          <section key={col.id} className="basis-xs flex flex-col min-h-0 gap-5">
-            <h2 className="text-violet-500 text-3xl font-semibold text-center shrink-0">{col.title}</h2>
-            <ColumnContainer id={col.id}>
-              {tasks
-                .filter((t) => t.status === col.id)
-                .map((t) => (
-                  <Task
-                    key={String(t.id)}
-                    task={t}
-                    setDetailedTaskOverlay={setDisplayOverlay}
-                  />
-                ))}
-            </ColumnContainer>
-          </section>
-        ))}
+        <div className="flex flex-row justify-around flex-1 box-border items-stretch gap-6 min-h-0">
+          {columns.map((col) => (
+            <section key={col.id} className="basis-xs flex flex-col min-h-0 gap-4">
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-lg font-semibold text-zinc-800">{col.title}</h2>
+                <span className="text-xs text-zinc-500 bg-zinc-100 px-3 py-1 rounded-full">
+                  {tasks.filter((t) => t.status === col.id).length}
+                </span>
+              </div>
+              <ColumnContainer id={col.id}>
+                {tasks
+                  .filter((t) => t.status === col.id)
+                  .map((t) => (
+                    <Task
+                      key={String(t.id)}
+                      task={t}
+                      setDetailedTaskOverlay={setDisplayOverlay}
+                    />
+                  ))}
+              </ColumnContainer>
+            </section>
+          ))}
         </div>
       </div>
 

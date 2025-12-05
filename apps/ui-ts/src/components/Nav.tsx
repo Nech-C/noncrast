@@ -25,13 +25,13 @@ export default function Nav({ selected = "dashboard", onChange }: Props) {
     onChange?.(s);
   };
 
-  const base = "mr-3 px-3 py-1 rounded-xl";
-  const active = "bg-violet-600 text-white";
-  const inactive = "text-violet-600 hover:bg-violet-100";
+  const base = "mr-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors";
+  const active = "bg-violet-50 text-violet-700 border border-violet-200";
+  const inactive = "text-zinc-700 hover:bg-zinc-50";
 
   return (
-    <nav className="border-b border-b-zinc-500 shrink-0">
-      <div role="tablist" className="flex px-2.5 py-2.5 font-mono text-2xl">
+    <nav className="border-b border-zinc-200 bg-white shadow-sm shrink-0">
+      <div role="tablist" className="flex px-4 py-3 font-sans text-base">
         <Link
           to="/"
           id="dashboard-tab"
