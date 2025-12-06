@@ -89,7 +89,7 @@ export default function TasksPage() {
         ? (<TaskDetailOverlay task={detailOverlayTask} onClose={() => setDisplayOverlay(null)}/>)
         : null
       }
-      <div className="flex flex-col h-full w-full bg-white py-8 px-10 box-border gap-8">
+      <div className="flex flex-col h-full w-full bg-violet-50 py-8 px-10 box-border gap-8">
         <form onSubmit={handleAdd} className="flex flex-wrap gap-4 items-end border border-zinc-200 rounded-2xl bg-white shadow-sm px-6 py-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-semibold text-zinc-700">Task name</label>

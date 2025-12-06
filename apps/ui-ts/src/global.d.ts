@@ -1,4 +1,3 @@
-import { ipcRenderer } from 'electron';
 import { TaskType, FocusSession, Interruption, MlMsg } from './types';
 import { Settings, SettingsUpdate } from './settings/schema';
 

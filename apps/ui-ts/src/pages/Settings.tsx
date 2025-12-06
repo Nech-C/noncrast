@@ -12,15 +12,15 @@ const sections = [
 
 function Sidebar({ active }: { active: string }) {
   return (
-    <aside className="bg-zinc-100/70 flex flex-col gap-1 h-full w-64 p-2.5 rounded-br-xl overflow-y-auto">
+    <aside className="bg-violet-100 flex flex-col gap-1 h-full w-64 p-2.5 rounded-br-xl overflow-y-auto">
       {sections.map(({ key, label }) => {
         const selected = active === key;
         return (
           <Link
             key={key}
             to={`/settings/${key}`}
-            className={`flex flex-col gap-1 px-10 py-2.5 rounded-xl text-2xl font-medium text-violet-600 ${
-              selected ? 'bg-white shadow-sm' : 'hover:bg-white'
+            className={`flex flex-col gap-1 px-10 py-2.5 rounded-xl text-xl font-semibold ${
+              selected ? 'bg-violet-50 shadow-sm' : 'hover:bg-white'
             }`}
           >
             <span>{label}</span>
@@ -62,8 +62,8 @@ function SettingRow({ title, description, control }: RowProps) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-zinc-200 last:border-b-0">
       <div className="relative w-full pr-6 max-w-3xl">
-        <p className="text-xl font-medium text-black leading-none mb-2">{title}</p>
-        <p className="text-zinc-600 text-base leading-snug">{description}</p>
+        <p className="text-md font-medium text-black leading-none mb-2">{title}</p>
+        <p className="text-base text-zinc-600leading-snug">{description}</p>
       </div>
       <div className="min-w-[120px] text-right text-lg text-black">{control}</div>
     </div>
@@ -249,7 +249,7 @@ export default function SettingsPage() {
   }, [activeSection, navigate]);
 
   return (
-    <div className="flex h-full w-full bg-white">
+    <div className="flex h-full w-full bg-violet-50">
       <Sidebar active={activeSection} />
       <section className="flex-1 px-10 py-8 overflow-y-auto custom-scrollbar" aria-label="Settings content">
         {activeSection === 'general' && <GeneralPanel endOfDay={settings.endOfDay} onUpdate={update} />}
