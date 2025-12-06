@@ -161,8 +161,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-full w-full bg-white gap-12 px-12 py-10 items-start font-sans">
-      <div
+    <main className="flex flex-row flex-wrap h-full w-full bg-violet-50 justify-between gap-20 px-12 py-10 items-start font-sans">
+      {/** timer */}
+      <section
         className="flex flex-col border px-14 py-8 rounded-2xl border-neutral-200 bg-white shadow-sm w-[420px] min-h-[520px]"
       >
         <div className="mb-10">
@@ -180,9 +181,10 @@ export default function Dashboard() {
           </div>
         </div>
         <Timer size={320} />
-      </div>
+      </section>
 
-      <div className="flex-1 min-w-[520px]">
+      {/** stats */}
+      <section className="flex-1 min-w-[520px] max-w-[]">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-zinc-900">Stats</h2>
           <div className="inline-flex items-center rounded-xl border border-neutral-200 bg-white p-1 text-sm gap-1 shadow-sm">
@@ -205,7 +207,7 @@ export default function Dashboard() {
             })}
           </div>
         </div>
-        <div className="grid grid-cols-2 grid-rows-2 gap-10 pr-4">
+        <div className="grid grid-cols-2 grid-rows-2 gap-y-10 justify-items-center">
           {kpiItems.map((element) => (
             <KpiCard
               name={element.name}
@@ -216,7 +218,7 @@ export default function Dashboard() {
           ))}
         </div>
         <p className="text-sm text-zinc-500 mt-5">Based on your End of Day setting ({formatHourLabel(settings.endOfDay)}).</p>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

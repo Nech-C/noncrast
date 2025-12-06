@@ -25,7 +25,7 @@ export default function Nav({ selected = "dashboard", onChange }: Props) {
     onChange?.(s);
   };
 
-  const base = "mr-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors";
+  const base = "mr-2 px-4 py-2 rounded-lg text-lg font-semibold transition-colors";
   const active = "bg-violet-50 text-violet-700 border border-violet-200";
   const inactive = "text-zinc-700 hover:bg-zinc-50";
 
