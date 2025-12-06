@@ -52,7 +52,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
 
   function playAlertTone() {
     try {
-      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
       const osc = ctx.createOscillator();
