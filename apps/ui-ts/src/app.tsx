@@ -18,14 +18,14 @@ root.render(
       <TodoProvider><TimerProvider>
           <div className='font-sans h-screen w-screen flex flex-col overflow-hidden bg-zinc-50'>
             <Nav/>
-            <main className='flex-1 min-h-0 overflow-hidden'>
+            <div className='flex-1 min-h-0 overflow-hidden'>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/interruptions" element={<InterruptionsPage />} />
                 <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/settings/*" element={<SettingsPage />} />
               </Routes>
-            </main>
+            </div>
           </div>
         </TimerProvider></TodoProvider>
     </SettingsProvider>
