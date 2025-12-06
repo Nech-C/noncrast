@@ -1,8 +1,8 @@
 {
   "name": "noncrast",
   "productName": "noncrast",
-  "version": "1.0.0",
-  "description": "My Electron application description",
+  "version": "0.1.0",
+  "description": "A to-do app that helps you to stay focused by monitoring you computer screen and reminding you when you go off-track using AI.",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
@@ -18,8 +18,8 @@
   },
   "keywords": [],
   "author": {
-    "name": "Chen",
-    "email": "xiaokunchen@outlook.com"
+    "name": "Nech",
+    "email": "nechchen.dev@gmail.com"
   },
   "license": "MIT",
   "devDependencies": {
