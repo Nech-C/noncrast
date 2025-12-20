@@ -77,7 +77,7 @@ export class DbClient {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS ${this.focusSessionsTable} (
         id INTEGER PRIMARY KEY,
-        task_id INTEGER REFERENCES ${this.tasksTable}(id),
+        task_id INTEGER REFERENCES ${this.tasksTable}(id) ON DELETE CASCADE,
         started_at INTEGER NOT NULL,  --ms
         ended_at INTEGER,  --ms
         planned_ms INTEGER,
