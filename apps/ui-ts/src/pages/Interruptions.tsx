@@ -126,8 +126,8 @@ export default function InterruptionsPage() {
   );
 
   return (
-    <div className="bg-white h-full w-full">
-      <div className="mx-auto max-w-6xl px-10 py-8 space-y-6">
+    <div className="bg-white h-dvh w-full flex clex-col pb-15">
+      <div className="mx-auto max-w-6xl px-10 py-8 space-y-6 flex flex-col flex-1">
         <header className="flex items-center gap-3 text-sm text-neutral-600">
           <div className="px-3 py-1 rounded-lg bg-violet-50 text-violet-700 font-medium">Dashboard</div>
           <div className="text-neutral-400">/</div>
@@ -141,7 +141,7 @@ export default function InterruptionsPage() {
             No interruptions logged yet.
           </div>
         ) : (
-          <div className="flex flex-col divide-y divide-neutral-300">
+          <div className="flex flex-col divide-y divide-neutral-300 overflow-y-scroll">
             {sortedInterruptions.map((item, idx) => (
               <div key={item.id ?? idx} className="flex items-center gap-8 py-6">
                 <div className="h-[138px] w-[200px] flex-shrink-0 rounded-sm bg-neutral-200 overflow-hidden">

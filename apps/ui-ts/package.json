@@ -1,7 +1,7 @@
 {
   "name": "noncrast",
   "productName": "noncrast",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A to-do app that helps you to stay focused by monitoring you computer screen and reminding you when you go off-track using AI.",
   "main": ".vite/build/main.js",
   "scripts": {
